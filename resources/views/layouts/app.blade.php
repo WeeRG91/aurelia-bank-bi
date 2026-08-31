@@ -16,6 +16,13 @@
         </a>
 
         @auth
+            <a
+                href="{{ route('branches.index') }}"
+                class="text-sm font-medium text-slate-700 hover:text-amber-700"
+            >
+                Branches
+            </a>
+
             <div class="flex items-center gap-4">
                     <span class="text-sm text-slate-600">
                         {{ auth()->user()->name }}

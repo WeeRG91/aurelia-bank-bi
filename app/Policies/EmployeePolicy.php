@@ -10,7 +10,7 @@ class EmployeePolicy
 {
     public function before(User $user): ?bool
     {
-        if (!$user->isActiveEmployee()) {
+        if (! $user->isActiveEmployee()) {
             return false;
         }
 

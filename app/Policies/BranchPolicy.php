@@ -2,12 +2,16 @@
 
 namespace App\Policies;
 
-use App\Enums\EmployeeRole;
+use App\Authorization\BranchAccess;
 use App\Models\Branch;
 use App\Models\User;
 
-class BranchPolicy
+readonly class BranchPolicy
 {
+    public function __construct(
+        private BranchAccess $branchAccess,
+    ) {}
+
     public function before(User $user): ?bool
     {
         if (! $user->isActiveEmployee()) {
@@ -30,23 +34,7 @@ class BranchPolicy
      */
     public function view(User $user, Branch $branch): bool
     {
-        $employee = $user->employee;
-
-        if ($employee === null) {
-            return false;
-        }
-
-        return match ($employee->role) {
-            EmployeeRole::COUNTRY_MANAGER,
-            EmployeeRole::FINANCE_ANALYST,
-            EmployeeRole::RISK_ANALYST,
-            EmployeeRole::AUDITOR,
-            EmployeeRole::ADMINISTRATOR => true,
-
-            EmployeeRole::BRANCH_ANALYST,
-            EmployeeRole::BRANCH_MANAGER => $employee->branch_id !== null
-                && $employee->branch_id === $branch->getKey(),
-        };
+        return $this->branchAccess->canView($user, $branch);
     }
 
     /**
