@@ -52,6 +52,14 @@ class Customer extends Model
     }
 
     /**
+     * @return HasMany<Loan, $this>
+     */
+    public function loans(): HasMany
+    {
+        return $this->hasMany(Loan::class);
+    }
+
+    /**
      * @return array<string, string>
      */
     protected function casts(): array
