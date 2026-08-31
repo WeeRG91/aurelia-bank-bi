@@ -9,6 +9,7 @@ use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 #[Fillable([
     'branch_id',
@@ -30,6 +31,14 @@ class Account extends Model
     public function branch(): BelongsTo
     {
         return $this->belongsTo(Branch::class);
+    }
+
+    /**
+     * @return HasMany<AccountHolder, $this>
+     */
+    public function accountHolders(): HasMany
+    {
+        return $this->hasMany(AccountHolder::class);
     }
 
     /**

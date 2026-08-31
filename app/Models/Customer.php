@@ -9,6 +9,7 @@ use Database\Factories\CustomerFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 #[Fillable([
     'customer_number',
@@ -33,6 +34,14 @@ class Customer extends Model
 {
     /** @use HasFactory<CustomerFactory> */
     use HasFactory;
+
+    /**
+     * @return HasMany<AccountHolder, $this>
+     */
+    public function accountHolders(): HasMany
+    {
+        return $this->hasMany(AccountHolder::class);
+    }
 
     /**
      * @return array<string, string>
