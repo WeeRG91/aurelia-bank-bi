@@ -10,6 +10,7 @@ use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 
 #[Fillable([
     'account_id',
@@ -24,6 +25,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
     'booked_at',
     'value_date',
     'status',
+    'reversal_of_transaction_id',
 ])]
 class Transaction extends Model
 {
@@ -36,6 +38,22 @@ class Transaction extends Model
     public function account(): BelongsTo
     {
         return $this->belongsTo(Account::class);
+    }
+
+    /**
+     * @return BelongsTo<Transaction, $this>
+     */
+    public function originalTransaction(): BelongsTo
+    {
+        return $this->belongsTo(Transaction::class, 'reversal_of_transaction_id');
+    }
+
+    /**
+     * @return HasOne<HasOne, $this>
+     */
+    public function reversalTransaction(): HasOne
+    {
+        return $this->hasOne(Transaction::class, 'reversal_of_transaction_id');
     }
 
     /**

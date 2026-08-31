@@ -83,5 +83,13 @@ class TransactionFactoryTest extends TestCase
             'account_id',
             $account->transactions()->getForeignKeyName(),
         );
+        $this->assertSame(
+            'reversal_of_transaction_id',
+            $transaction->originalTransaction()->getForeignKeyName(),
+        );
+        $this->assertSame(
+            'reversal_of_transaction_id',
+            $transaction->reversalTransaction()->getForeignKeyName(),
+        );
     }
 }

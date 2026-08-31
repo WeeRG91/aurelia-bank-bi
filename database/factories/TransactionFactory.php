@@ -91,7 +91,6 @@ class TransactionFactory extends Factory
             TransactionStatus::BOOKED,
             TransactionStatus::PENDING,
             TransactionStatus::FAILED,
-            TransactionStatus::REVERSED,
         ]);
 
         $bookedAt = in_array(
@@ -149,6 +148,7 @@ class TransactionFactory extends Factory
             'booked_at' => $bookedAt?->format('Y-m-d H:i:sP'),
             'value_date' => $valueDate?->format('Y-m-d'),
             'status' => $status,
+            'reversal_of_transaction_id' => null,
         ];
     }
 }
