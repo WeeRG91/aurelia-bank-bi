@@ -58,6 +58,14 @@ class Account extends Model
     }
 
     /**
+     * @return HasMany<Card, $this>
+     */
+    public function cards(): HasMany
+    {
+        return $this->hasMany(Card::class);
+    }
+
+    /**
      * @return array<string, string>
      */
     protected function casts(): array
