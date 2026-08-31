@@ -37,6 +37,14 @@ class Branch extends Model
     }
 
     /**
+     * @return HasMany<Employee, $this>
+     */
+    public function employees(): HasMany
+    {
+        return $this->hasMany(Employee::class);
+    }
+
+    /**
      * @return array<string, string>
      */
     protected function casts(): array
