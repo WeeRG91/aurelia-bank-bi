@@ -57,6 +57,14 @@ class Transaction extends Model
     }
 
     /**
+     * @return HasOne<CardTransaction, $this>
+     */
+    public function cardTransaction(): HasOne
+    {
+        return $this->hasOne(CardTransaction::class, 'account_transaction_id');
+    }
+
+    /**
      * @return array<string, string>
      */
     protected function casts(): array

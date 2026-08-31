@@ -9,6 +9,7 @@ use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 #[Fillable([
     'customer_id',
@@ -39,6 +40,14 @@ class Card extends Model
     public function account(): BelongsTo
     {
         return $this->belongsTo(Account::class);
+    }
+
+    /**
+     * @return HasMany<CardTransaction, $this>
+     */
+    public function cardTransactions(): HasMany
+    {
+        return $this->hasMany(CardTransaction::class);
     }
 
     /**
