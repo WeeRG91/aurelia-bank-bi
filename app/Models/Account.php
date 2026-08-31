@@ -50,6 +50,14 @@ class Account extends Model
     }
 
     /**
+     * @return HasMany<AccountBalanceSnapshot, $this>
+     */
+    public function balanceSnapshots(): HasMany
+    {
+        return $this->hasMany(AccountBalanceSnapshot::class);
+    }
+
+    /**
      * @return array<string, string>
      */
     protected function casts(): array
