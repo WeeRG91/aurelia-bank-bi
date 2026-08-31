@@ -42,6 +42,14 @@ class Account extends Model
     }
 
     /**
+     * @return HasMany<Transaction, $this>
+     */
+    public function transactions(): HasMany
+    {
+        return $this->hasMany(Transaction::class);
+    }
+
+    /**
      * @return array<string, string>
      */
     protected function casts(): array
