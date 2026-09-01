@@ -7,6 +7,7 @@ use App\Analytics\Datasets\DatasetKey;
 use App\Analytics\Datasets\DatasetStatus;
 use App\Analytics\Datasets\DimensionDefinition;
 use App\Analytics\Datasets\DimensionKind;
+use App\Analytics\Datasets\Dimensions\BankingDimensions;
 use App\Analytics\Datasets\FieldDataType;
 use App\Analytics\Datasets\SensitivityLevel;
 
@@ -30,33 +31,9 @@ final class TransactionDataset
                     sensitivity: SensitivityLevel::CONFIDENTIAL,
                     nullable: false,
                 ),
-                new DimensionDefinition(
-                    key: 'branch',
-                    label: 'Branch',
-                    description: 'Bank branch responsible for the transaction account.',
-                    dataType: FieldDataType::STRING,
-                    kind: DimensionKind::CATEGORICAL,
-                    sensitivity: SensitivityLevel::INTERNAL,
-                    nullable: false,
-                ),
-                new DimensionDefinition(
-                    key: 'country',
-                    label: 'Country',
-                    description: 'Country in which the responsible branch operates.',
-                    dataType: FieldDataType::STRING,
-                    kind: DimensionKind::GEOGRAPHIC,
-                    sensitivity: SensitivityLevel::INTERNAL,
-                    nullable: false,
-                ),
-                new DimensionDefinition(
-                    key: 'account_type',
-                    label: 'Account Type',
-                    description: 'Business type of the account affected by the transaction.',
-                    dataType: FieldDataType::STRING,
-                    kind: DimensionKind::CATEGORICAL,
-                    sensitivity: SensitivityLevel::INTERNAL,
-                    nullable: false,
-                ),
+                BankingDimensions::branch(),
+                BankingDimensions::country(),
+                BankingDimensions::accountType(),
                 new DimensionDefinition(
                     key: 'transaction_type',
                     label: 'Transaction Type',

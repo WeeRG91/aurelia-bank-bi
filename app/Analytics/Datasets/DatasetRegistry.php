@@ -2,6 +2,7 @@
 
 namespace App\Analytics\Datasets;
 
+use App\Analytics\Datasets\Definitions\AccountBalanceDataset;
 use App\Analytics\Datasets\Definitions\TransactionDataset;
 use LogicException;
 
@@ -82,13 +83,7 @@ final class DatasetRegistry
                 grain: 'One row per customer.',
                 status: DatasetStatus::DRAFT,
             ),
-            new DatasetDefinition(
-                key: DatasetKey::ACCOUNT_BALANCES,
-                label: 'Account Balances',
-                description: 'Point-in-time ledger and available balances for banking accounts.',
-                grain: 'One row per account per snapshot date.',
-                status: DatasetStatus::DRAFT,
-            ),
+            AccountBalanceDataset::definition(),
             TransactionDataset::definition(),
             new DatasetDefinition(
                 key: DatasetKey::CARD_ACTIVITY,
