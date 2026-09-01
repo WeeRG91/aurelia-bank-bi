@@ -10,46 +10,57 @@ final readonly class DatasetQuery
 {
     private const int MAX_DIMENSIONS = 20;
 
+    private const int MAX_MEASURES = 10;
+
     private const int MAX_FILTERS = 20;
 
     private const int MAX_LIMIT = 500;
 
     /**
      * @param  list<string>  $dimensions
+     * @param  list<string>  $measures
      * @param  list<FilterCondition>  $filters
      */
     public function __construct(
         public DatasetKey $dataset,
-        public array $dimensions,
+        public array $dimensions = [],
+        public array $measures = [],
         public array $filters = [],
         public int $limit = 100,
     ) {
         if (
-            $this->dimensions === []
-            || ! array_is_list($this->dimensions)
+            ! array_is_list($this->dimensions)
             || count($this->dimensions) > self::MAX_DIMENSIONS
         ) {
             throw new InvalidArgumentException(
-                'A dataset query requires between 1 and 20 dimensions.',
+                'A dataset query cannot contain more than 20 dimensions.',
             );
         }
 
-        if (count(array_unique($this->dimensions)) !== count($this->dimensions)) {
+        if (
+            ! array_is_list($this->measures)
+            || count($this->measures) > self::MAX_MEASURES
+        ) {
             throw new InvalidArgumentException(
-                'Dataset query dimensions must be unique.',
+                'A dataset query cannot contain more than 10 measures.',
             );
         }
 
-        foreach ($this->dimensions as $dimension) {
-            if (
-                ! is_string($dimension)
-                || preg_match('/^[a-z][a-z0-9_]*$/', $dimension) !== 1
-            ) {
-                throw new InvalidArgumentException(
-                    'Dataset query dimensions must use safe semantic keys.',
-                );
-            }
+        if ($this->dimensions === [] && $this->measures === []) {
+            throw new InvalidArgumentException(
+                'A dataset query requires at least one dimension or measure.',
+            );
         }
+
+        $this->validateSemanticKeys(
+            $this->dimensions,
+            'dimensions',
+        );
+
+        $this->validateSemanticKeys(
+            $this->measures,
+            'measures',
+        );
 
         if (
             ! array_is_list($this->filters)
@@ -77,6 +88,28 @@ final readonly class DatasetQuery
         if ($this->limit < 1 || $this->limit > self::MAX_LIMIT) {
             throw new InvalidArgumentException(
                 'Dataset query limit must be between 1 and 500.',
+            );
+        }
+    }
+
+    private function validateSemanticKeys(
+        array $keys,
+        string $kind,
+    ): void {
+        foreach ($keys as $key) {
+            if (
+                ! is_string($key)
+                || preg_match('/^[a-z][a-z0-9_]*$/', $key) !== 1
+            ) {
+                throw new InvalidArgumentException(
+                    "Dataset query {$kind} must use safe semantic keys.",
+                );
+            }
+        }
+
+        if (count(array_unique($keys)) !== count($keys)) {
+            throw new InvalidArgumentException(
+                "Dataset query {$kind} must be unique.",
             );
         }
     }

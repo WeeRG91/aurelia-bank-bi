@@ -126,6 +126,7 @@ class AuthorizedDatasetQueryCompilerTest extends TestCase
             new DatasetRowScopeResolver($access),
             new DatasetQueryCompiler(
                 new FilterCompiler,
+                $registry,
             ),
         );
     }

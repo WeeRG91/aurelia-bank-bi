@@ -166,6 +166,7 @@ class DatasetQueryCompilerTest extends TestCase
     {
         return new DatasetQueryCompiler(
             new FilterCompiler,
+            new DatasetRegistry,
         );
     }
 
