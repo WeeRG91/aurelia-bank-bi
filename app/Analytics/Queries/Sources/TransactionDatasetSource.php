@@ -25,11 +25,6 @@ final class TransactionDatasetSource implements DatasetSource
         'value_date' => 'transactions.value_date',
     ];
 
-    private const array MEASURE_COLUMNS = [
-        'transaction_count' => 'transactions.id',
-        'total_amount' => 'transactions.amount',
-    ];
-
     public function dataset(): DatasetKey
     {
         return DatasetKey::TRANSACTIONS;
@@ -75,14 +70,21 @@ final class TransactionDatasetSource implements DatasetSource
         return 'branches.id';
     }
 
-    public function measureColumns(): array
+    public function measureSources(): array
     {
-        return self::MEASURE_COLUMNS;
+        return [
+            'transaction_count' => new MeasureSource(
+                column: 'transactions.id',
+            ),
+            'total_amount' => new MeasureSource(
+                column: 'transactions.amount',
+            ),
+        ];
     }
 
-    public function measureColumn(string $measure): string
+    public function measureSource(string $measure): MeasureSource
     {
-        return self::MEASURE_COLUMNS[$measure]
+        return $this->measureSources()[$measure]
             ?? throw UnknownMeasure::forDataset(
                 $this->dataset(),
                 $measure,

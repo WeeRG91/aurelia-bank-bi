@@ -11,6 +11,8 @@ use App\Analytics\Queries\Authorization\RowScopeType;
 use App\Analytics\Queries\Compilation\CompiledFilter;
 use App\Analytics\Queries\Compilation\FilterCompiler;
 use App\Analytics\Queries\Sources\DatasetSource;
+use App\Analytics\Queries\Sources\MeasureSource;
+use App\Analytics\Queries\Sources\MeasureSourceKind;
 use InvalidArgumentException;
 use LogicException;
 
@@ -134,6 +136,14 @@ final readonly class DatasetQueryCompiler
         DatasetSource $source,
         MeasureDefinition $measure,
     ): string {
+        $measureSource = $source->measureSource(
+            $measure->key,
+        );
+
+        $argument = $this->compileMeasureArgument(
+            $measureSource,
+        );
+
         $function = match ($measure->aggregation) {
             AggregationFunction::COUNT => 'COUNT',
             AggregationFunction::SUM => 'SUM',
@@ -145,9 +155,37 @@ final readonly class DatasetQueryCompiler
         return sprintf(
             '%s(%s) AS %s',
             $function,
-            $source->measureColumn($measure->key),
+            $argument,
             $measure->key,
         );
+    }
+
+    private function compileMeasureArgument(
+        MeasureSource $source,
+    ): string {
+        return match ($source->kind) {
+            MeasureSourceKind::COLUMN => $source->column,
+
+            MeasureSourceKind::INCOMING_AMOUNT => sprintf(
+                "CASE WHEN %s = 'incoming' THEN %s ELSE 0 END",
+                $source->directionColumn,
+                $source->column,
+            ),
+
+            MeasureSourceKind::OUTGOING_AMOUNT => sprintf(
+                "CASE WHEN %s = 'outgoing' THEN %s ELSE 0 END",
+                $source->directionColumn,
+                $source->column,
+            ),
+
+            MeasureSourceKind::NET_AMOUNT => sprintf(
+                "CASE WHEN %s = 'incoming' THEN %s WHEN %s = 'outgoing' THEN -%s ELSE 0 END",
+                $source->directionColumn,
+                $source->column,
+                $source->directionColumn,
+                $source->column,
+            ),
+        };
     }
 
     private function assertCurrencySafety(

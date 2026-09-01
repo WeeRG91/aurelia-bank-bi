@@ -20,11 +20,11 @@ interface DatasetSource
     public function column(string $dimension): string;
 
     /**
-     * @return array<string, string>
+     * @return array<string, MeasureSource>
      */
-    public function measureColumns(): array;
+    public function measureSources(): array;
 
-    public function measureColumn(string $measure): string;
+    public function measureSource(string $measure): MeasureSource;
 
     /**
      * @return list<JoinDefinition>

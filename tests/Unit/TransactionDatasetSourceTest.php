@@ -131,7 +131,7 @@ class TransactionDatasetSourceTest extends TestCase
         $this->assertSame(
             $measureKeys,
             array_keys(
-                (new TransactionDatasetSource)->measureColumns(),
+                (new TransactionDatasetSource)->measureSources(),
             ),
         );
     }
@@ -139,11 +139,11 @@ class TransactionDatasetSourceTest extends TestCase
     public function test_measure_sources_use_safe_qualified_columns(): void
     {
         foreach (
-            (new TransactionDatasetSource)->measureColumns() as $column
+            (new TransactionDatasetSource)->measureSources() as $source
         ) {
             $this->assertMatchesRegularExpression(
                 '/^[a-z][a-z0-9_]*\.[a-z][a-z0-9_]*$/',
-                $column,
+                $source->column,
             );
         }
     }
@@ -154,12 +154,12 @@ class TransactionDatasetSourceTest extends TestCase
 
         $this->assertSame(
             'transactions.id',
-            $source->measureColumn('transaction_count'),
+            $source->measureSource('transaction_count')->column,
         );
 
         $this->assertSame(
             'transactions.amount',
-            $source->measureColumn('total_amount'),
+            $source->measureSource('total_amount')->column,
         );
     }
 
@@ -171,6 +171,6 @@ class TransactionDatasetSourceTest extends TestCase
         );
 
         (new TransactionDatasetSource)
-            ->measureColumn('password_count');
+            ->measureSource('password_count');
     }
 }
