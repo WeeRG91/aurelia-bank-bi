@@ -38,6 +38,16 @@
             </div>
         @endif
 
+        <div class="mt-8 rounded-lg bg-slate-50 p-4">
+            <dt class="text-sm font-medium text-slate-500">
+                Dataset grain
+            </dt>
+
+            <dd class="mt-1 text-sm text-slate-900">
+                {{ $dataset->grain }}
+            </dd>
+        </div>
+
         <section class="mt-10 border-t border-slate-200 pt-8">
             <h2 class="text-xl font-semibold">Dimensions</h2>
 
@@ -104,6 +114,82 @@
 
                                 <td class="px-4 py-4">
                                     {{ $dimension->nullable ? 'Yes' : 'No' }}
+                                </td>
+                            </tr>
+                        @endforeach
+                        </tbody>
+                    </table>
+                </div>
+            @endif
+        </section>
+
+        <section class="mt-10 border-t border-slate-200 pt-8">
+            <h2 class="text-xl font-semibold">Measures</h2>
+
+            <p class="mt-2 text-sm text-slate-600">
+                Governed numeric values available for aggregation and reporting.
+            </p>
+
+            @if ($dataset->measures() === [])
+                <div class="mt-6 rounded-lg bg-slate-50 p-4 text-sm text-slate-500">
+                    No semantic measures have been defined for this dataset yet.
+                </div>
+            @else
+                <div class="mt-6 overflow-x-auto">
+                    <table class="min-w-full divide-y divide-slate-200">
+                        <thead>
+                        <tr class="text-left text-sm text-slate-500">
+                            <th class="px-4 py-3">Measure</th>
+                            <th class="px-4 py-3">Aggregation</th>
+                            <th class="px-4 py-3">Result type</th>
+                            <th class="px-4 py-3">Sensitivity</th>
+                            <th class="px-4 py-3">Currency context</th>
+                        </tr>
+                        </thead>
+
+                        <tbody class="divide-y divide-slate-100">
+                        @foreach ($dataset->measures() as $measure)
+                            <tr>
+                                <td class="px-4 py-4">
+                                    <div class="font-medium">
+                                        {{ $measure->label }}
+                                    </div>
+
+                                    <div class="mt-1 font-mono text-xs text-slate-400">
+                                        {{ $measure->key }}
+                                    </div>
+
+                                    <div class="mt-2 max-w-md text-sm text-slate-500">
+                                        {{ $measure->description }}
+                                    </div>
+                                </td>
+
+                                <td class="px-4 py-4">
+                                    {{ str($measure->aggregation->value)->title() }}
+                                </td>
+
+                                <td class="px-4 py-4">
+                                    {{ str($measure->dataType->value)->title() }}
+                                </td>
+
+                                <td class="px-4 py-4">
+                                    {{ str($measure->sensitivity->value)->title() }}
+                                </td>
+
+                                <td class="px-4 py-4">
+                                    @if ($measure->currencyDimension !== null)
+                                        <div>
+                                            {{ $dataset->dimension($measure->currencyDimension)->label }}
+                                        </div>
+
+                                        <div class="mt-1 font-mono text-xs text-slate-400">
+                                            {{ $measure->currencyDimension }}
+                                        </div>
+                                    @else
+                                        <span class="text-slate-400">
+                                    Not applicable
+                                </span>
+                                    @endif
                                 </td>
                             </tr>
                         @endforeach
