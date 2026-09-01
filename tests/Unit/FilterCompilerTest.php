@@ -160,6 +160,25 @@ class FilterCompilerTest extends TestCase
         );
     }
 
+    public function test_on_or_after_filter_uses_inclusive_lower_boundary(): void
+    {
+        $compiled = $this->compile(
+            'booked_at',
+            'on_or_after',
+            '2026-09-01T00:00:00+00:00',
+        );
+
+        $this->assertSame(
+            'transactions.booked_at >= ?',
+            $compiled->sql,
+        );
+
+        $this->assertSame(
+            ['2026-09-01T00:00:00+00:00'],
+            $compiled->bindings,
+        );
+    }
+
     private function compile(
         string $dimension,
         string $operator,

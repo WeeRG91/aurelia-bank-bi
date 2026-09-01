@@ -66,6 +66,11 @@ final class FilterCompiler
                 $column,
                 negated: true,
             ),
+            FilterOperator::ON_OR_AFTER => $this->compileScalar(
+                $condition,
+                $column,
+                '>=',
+            ),
         };
     }
 

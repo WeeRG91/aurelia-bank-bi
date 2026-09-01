@@ -10,6 +10,7 @@ enum FilterOperator: string
     case NOT_IN = 'not_in';
     case BEFORE = 'before';
     case AFTER = 'after';
+    case ON_OR_AFTER = 'on_or_after';
     case BETWEEN = 'between';
     case IS_NULL = 'is_null';
     case IS_NOT_NULL = 'is_not_null';

@@ -28,6 +28,7 @@ final class DimensionFilterRules
                 FilterOperator::NOT_EQUALS,
                 FilterOperator::BEFORE,
                 FilterOperator::AFTER,
+                FilterOperator::ON_OR_AFTER,
                 FilterOperator::BETWEEN,
             ],
         };
