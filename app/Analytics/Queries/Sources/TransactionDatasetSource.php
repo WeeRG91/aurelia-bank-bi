@@ -79,6 +79,21 @@ final class TransactionDatasetSource implements DatasetSource
             'total_amount' => new MeasureSource(
                 column: 'transactions.amount',
             ),
+            'incoming_amount' => new MeasureSource(
+                column: 'transactions.amount',
+                kind: MeasureSourceKind::INCOMING_AMOUNT,
+                directionColumn: 'transactions.direction',
+            ),
+            'outgoing_amount' => new MeasureSource(
+                column: 'transactions.amount',
+                kind: MeasureSourceKind::OUTGOING_AMOUNT,
+                directionColumn: 'transactions.direction',
+            ),
+            'net_cash_flow' => new MeasureSource(
+                column: 'transactions.amount',
+                kind: MeasureSourceKind::NET_AMOUNT,
+                directionColumn: 'transactions.direction',
+            ),
         ];
     }
 

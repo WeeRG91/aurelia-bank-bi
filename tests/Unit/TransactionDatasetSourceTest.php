@@ -9,6 +9,7 @@ use App\Analytics\Datasets\MeasureDefinition;
 use App\Analytics\Datasets\UnknownDimension;
 use App\Analytics\Datasets\UnknownMeasure;
 use App\Analytics\Queries\Sources\JoinDefinition;
+use App\Analytics\Queries\Sources\MeasureSourceKind;
 use App\Analytics\Queries\Sources\TransactionDatasetSource;
 use PHPUnit\Framework\TestCase;
 
@@ -172,5 +173,36 @@ class TransactionDatasetSourceTest extends TestCase
 
         (new TransactionDatasetSource)
             ->measureSource('password_count');
+    }
+
+    public function test_directional_measures_use_controlled_source_kinds(): void
+    {
+        $source = new TransactionDatasetSource;
+
+        $this->assertSame(
+            MeasureSourceKind::INCOMING_AMOUNT,
+            $source->measureSource('incoming_amount')->kind,
+        );
+
+        $this->assertSame(
+            MeasureSourceKind::OUTGOING_AMOUNT,
+            $source->measureSource('outgoing_amount')->kind,
+        );
+
+        $this->assertSame(
+            MeasureSourceKind::NET_AMOUNT,
+            $source->measureSource('net_cash_flow')->kind,
+        );
+
+        foreach ([
+            'incoming_amount',
+            'outgoing_amount',
+            'net_cash_flow',
+        ] as $measureKey) {
+            $this->assertSame(
+                'transactions.direction',
+                $source->measureSource($measureKey)->directionColumn,
+            );
+        }
     }
 }

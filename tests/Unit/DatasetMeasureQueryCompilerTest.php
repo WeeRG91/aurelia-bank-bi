@@ -124,6 +124,41 @@ class DatasetMeasureQueryCompilerTest extends TestCase
         );
     }
 
+    public function test_directional_measures_compile_to_controlled_case_expressions(): void
+    {
+        $compiled = $this->compile(
+            new DatasetQuery(
+                dataset: DatasetKey::TRANSACTIONS,
+                dimensions: ['currency'],
+                measures: [
+                    'incoming_amount',
+                    'outgoing_amount',
+                    'net_cash_flow',
+                ],
+            ),
+        );
+
+        $this->assertStringContainsString(
+            "SUM(CASE WHEN transactions.direction = 'incoming' THEN transactions.amount ELSE 0 END) AS incoming_amount",
+            $compiled->sql,
+        );
+
+        $this->assertStringContainsString(
+            "SUM(CASE WHEN transactions.direction = 'outgoing' THEN transactions.amount ELSE 0 END) AS outgoing_amount",
+            $compiled->sql,
+        );
+
+        $this->assertStringContainsString(
+            "SUM(CASE WHEN transactions.direction = 'incoming' THEN transactions.amount WHEN transactions.direction = 'outgoing' THEN -transactions.amount ELSE 0 END) AS net_cash_flow",
+            $compiled->sql,
+        );
+
+        $this->assertStringContainsString(
+            'GROUP BY transactions.currency',
+            $compiled->sql,
+        );
+    }
+
     private function compile(
         DatasetQuery $query,
         ?DatasetRowScope $scope = null,

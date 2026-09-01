@@ -118,6 +118,33 @@ final class TransactionDataset
                     sensitivity: SensitivityLevel::CONFIDENTIAL,
                     currencyDimension: 'currency',
                 ),
+                new MeasureDefinition(
+                    key: 'incoming_amount',
+                    label: 'Incoming Amount',
+                    description: 'Sum of incoming transaction amounts in the result group.',
+                    dataType: FieldDataType::DECIMAL,
+                    aggregation: AggregationFunction::SUM,
+                    sensitivity: SensitivityLevel::CONFIDENTIAL,
+                    currencyDimension: 'currency',
+                ),
+                new MeasureDefinition(
+                    key: 'outgoing_amount',
+                    label: 'Outgoing Amount',
+                    description: 'Sum of outgoing transaction amounts in the result group.',
+                    dataType: FieldDataType::DECIMAL,
+                    aggregation: AggregationFunction::SUM,
+                    sensitivity: SensitivityLevel::CONFIDENTIAL,
+                    currencyDimension: 'currency',
+                ),
+                new MeasureDefinition(
+                    key: 'net_cash_flow',
+                    label: 'Net Cash Flow',
+                    description: 'Incoming amounts minus outgoing amounts for the included transaction rows.',
+                    dataType: FieldDataType::DECIMAL,
+                    aggregation: AggregationFunction::SUM,
+                    sensitivity: SensitivityLevel::CONFIDENTIAL,
+                    currencyDimension: 'currency',
+                ),
             ],
         );
     }

@@ -22,7 +22,13 @@ class TransactionMeasureTest extends TestCase
             ->get(DatasetKey::TRANSACTIONS);
 
         $this->assertSame(
-            ['transaction_count', 'total_amount'],
+            [
+                'transaction_count',
+                'total_amount',
+                'incoming_amount',
+                'outgoing_amount',
+                'net_cash_flow',
+            ],
             array_map(
                 fn (MeasureDefinition $measure): string => $measure->key,
                 $dataset->measures(),
@@ -117,5 +123,39 @@ class TransactionMeasureTest extends TestCase
                 ),
             ],
         );
+    }
+
+    public function test_directional_amount_measures_are_currency_aware_sums(): void
+    {
+        $dataset = (new DatasetRegistry)
+            ->get(DatasetKey::TRANSACTIONS);
+
+        foreach ([
+            'incoming_amount',
+            'outgoing_amount',
+            'net_cash_flow',
+        ] as $measureKey) {
+            $measure = $dataset->measure($measureKey);
+
+            $this->assertSame(
+                AggregationFunction::SUM,
+                $measure->aggregation,
+            );
+
+            $this->assertSame(
+                FieldDataType::DECIMAL,
+                $measure->dataType,
+            );
+
+            $this->assertSame(
+                SensitivityLevel::CONFIDENTIAL,
+                $measure->sensitivity,
+            );
+
+            $this->assertSame(
+                'currency',
+                $measure->currencyDimension,
+            );
+        }
     }
 }
