@@ -3,6 +3,7 @@
 namespace App\Analytics\Time;
 
 use App\Analytics\Datasets\DatasetKey;
+use App\Analytics\Filters\FilterCondition;
 use App\Analytics\Queries\DatasetQuery;
 use DateTimeImmutable;
 use DateTimeZone;
@@ -17,7 +18,7 @@ final readonly class RelativeDateDatasetQueryFactory
     /**
      * @param  list<string>  $dimensions
      * @param  list<string>  $measures
-     * @param  list<string>  $filters
+     * @param  list<FilterCondition>  $filters
      */
     public function create(
         DatasetKey $dataset,
