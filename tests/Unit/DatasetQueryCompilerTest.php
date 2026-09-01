@@ -221,4 +221,17 @@ class DatasetQueryCompilerTest extends TestCase
             $compiled->bindings,
         );
     }
+
+    public function test_dataset_queries_default_to_utc_reporting_timezone(): void
+    {
+        $query = new DatasetQuery(
+            dataset: DatasetKey::TRANSACTIONS,
+            dimensions: ['transaction_reference'],
+        );
+
+        $this->assertSame(
+            'UTC',
+            $query->reportingTimezone->name,
+        );
+    }
 }

@@ -16,8 +16,8 @@ use App\Analytics\Time\RelativeDateDatasetQueryFactory;
 use App\Analytics\Time\RelativeDateFilterFactory;
 use App\Analytics\Time\RelativeDatePreset;
 use App\Analytics\Time\RelativeDateRangeResolver;
+use App\Analytics\Time\ReportingTimezone;
 use DateTimeImmutable;
-use DateTimeZone;
 use InvalidArgumentException;
 use PHPUnit\Framework\TestCase;
 
@@ -34,6 +34,11 @@ class RelativeDateDatasetQueryFactoryTest extends TestCase
             preset: RelativeDatePreset::PREVIOUS_MONTH,
             now: $this->now(),
             reportingTimezone: $this->timezone(),
+        );
+
+        $this->assertSame(
+            'Europe/Luxembourg',
+            $query->reportingTimezone->name,
         );
 
         $compiled = $this->compiler()->compile(
@@ -203,8 +208,8 @@ class RelativeDateDatasetQueryFactoryTest extends TestCase
         );
     }
 
-    private function timezone(): DateTimeZone
+    private function timezone(): ReportingTimezone
     {
-        return new DateTimeZone('Europe/Luxembourg');
+        return new ReportingTimezone('Europe/Luxembourg');
     }
 }

@@ -4,6 +4,7 @@ namespace App\Analytics\Queries;
 
 use App\Analytics\Datasets\DatasetKey;
 use App\Analytics\Filters\FilterCondition;
+use App\Analytics\Time\ReportingTimezone;
 use InvalidArgumentException;
 
 final readonly class DatasetQuery
@@ -27,6 +28,7 @@ final readonly class DatasetQuery
         public array $measures = [],
         public array $filters = [],
         public int $limit = 100,
+        public ReportingTimezone $reportingTimezone = new ReportingTimezone('UTC'),
     ) {
         if (
             ! array_is_list($this->dimensions)

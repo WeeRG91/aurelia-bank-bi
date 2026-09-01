@@ -5,8 +5,8 @@ namespace App\Analytics\Time;
 use App\Analytics\Datasets\DatasetKey;
 use App\Analytics\Filters\FilterCondition;
 use App\Analytics\Queries\DatasetQuery;
+use DateInvalidTimeZoneException;
 use DateTimeImmutable;
-use DateTimeZone;
 use InvalidArgumentException;
 
 final readonly class RelativeDateDatasetQueryFactory
@@ -19,6 +19,8 @@ final readonly class RelativeDateDatasetQueryFactory
      * @param  list<string>  $dimensions
      * @param  list<string>  $measures
      * @param  list<FilterCondition>  $filters
+     *
+     * @throws DateInvalidTimeZoneException
      */
     public function create(
         DatasetKey $dataset,
@@ -28,7 +30,7 @@ final readonly class RelativeDateDatasetQueryFactory
         string $relativeDateDimension,
         RelativeDatePreset $preset,
         DateTimeImmutable $now,
-        DateTimeZone $reportingTimezone,
+        ReportingTimezone $reportingTimezone,
         int $limit = 100,
     ): DatasetQuery {
         foreach ($filters as $filter) {
@@ -44,7 +46,7 @@ final readonly class RelativeDateDatasetQueryFactory
             $relativeDateDimension,
             $preset,
             $now,
-            $reportingTimezone,
+            $reportingTimezone->toDateTimeZone(),
         );
 
         return new DatasetQuery(
@@ -56,6 +58,7 @@ final readonly class RelativeDateDatasetQueryFactory
                 ...$relativeFilters,
             ],
             limit: $limit,
+            reportingTimezone: $reportingTimezone,
         );
     }
 }
