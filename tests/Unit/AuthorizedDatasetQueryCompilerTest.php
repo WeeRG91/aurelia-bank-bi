@@ -143,6 +143,7 @@ class AuthorizedDatasetQueryCompilerTest extends TestCase
                 grain: $draft->grain,
                 status: DatasetStatus::ACTIVE,
                 dimensions: $draft->dimensions(),
+                measures: $draft->measures(),
             ),
         ]);
     }

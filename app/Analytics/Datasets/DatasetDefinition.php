@@ -13,7 +13,13 @@ final readonly class DatasetDefinition
     private array $dimensions;
 
     /**
+     * @var array<string, MeasureDefinition>
+     */
+    private array $measures;
+
+    /**
      * @param  iterable<DimensionDefinition>  $dimensions
+     * @param  iterable<MeasureDefinition>  $measures
      */
     public function __construct(
         public DatasetKey $key,
@@ -22,6 +28,7 @@ final readonly class DatasetDefinition
         public string $grain,
         public DatasetStatus $status,
         iterable $dimensions = [],
+        iterable $measures = [],
     ) {
         if (trim($this->label) === '') {
             throw new InvalidArgumentException(
@@ -53,7 +60,37 @@ final readonly class DatasetDefinition
             $indexedDimensions[$dimension->key] = $dimension;
         }
 
+        $indexedMeasures = [];
+
+        foreach ($measures as $measure) {
+            if (isset($indexedMeasures[$measure->key])) {
+                throw new LogicException(
+                    "Duplicate measure [{$measure->key}] in dataset [{$this->key->value}].",
+                );
+            }
+
+            if (isset($indexedDimensions[$measure->key])) {
+                throw new LogicException(
+                    "Semantic key [{$measure->key}] cannot be both a dimension and a measure in dataset [{$this->key->value}].",
+                );
+            }
+
+            if (
+                $measure->currencyDimension !== null
+                && ! isset(
+                    $indexedDimensions[$measure->currencyDimension],
+                )
+            ) {
+                throw new LogicException(
+                    "Currency dimension [{$measure->currencyDimension}] for measure [{$measure->key}] does not exist in dataset [{$this->key->value}].",
+                );
+            }
+
+            $indexedMeasures[$measure->key] = $measure;
+        }
+
         $this->dimensions = $indexedDimensions;
+        $this->measures = $indexedMeasures;
     }
 
     /**
@@ -75,5 +112,26 @@ final readonly class DatasetDefinition
     ): DimensionDefinition {
         return $this->findDimension($key)
             ?? throw UnknownDimension::forDataset($this->key, $key);
+    }
+
+    /**
+     * @return list<MeasureDefinition>
+     */
+    public function measures(): array
+    {
+        return array_values($this->measures);
+    }
+
+    public function findMeasure(
+        string $key,
+    ): ?MeasureDefinition {
+        return $this->measures[$key] ?? null;
+    }
+
+    public function measure(
+        string $key,
+    ): MeasureDefinition {
+        return $this->findMeasure($key)
+            ?? throw UnknownMeasure::forDataset($this->key, $key);
     }
 }

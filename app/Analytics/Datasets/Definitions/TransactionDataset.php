@@ -2,6 +2,7 @@
 
 namespace App\Analytics\Datasets\Definitions;
 
+use App\Analytics\Datasets\AggregationFunction;
 use App\Analytics\Datasets\DatasetDefinition;
 use App\Analytics\Datasets\DatasetKey;
 use App\Analytics\Datasets\DatasetStatus;
@@ -9,6 +10,7 @@ use App\Analytics\Datasets\DimensionDefinition;
 use App\Analytics\Datasets\DimensionKind;
 use App\Analytics\Datasets\Dimensions\BankingDimensions;
 use App\Analytics\Datasets\FieldDataType;
+use App\Analytics\Datasets\MeasureDefinition;
 use App\Analytics\Datasets\SensitivityLevel;
 
 final class TransactionDataset
@@ -96,6 +98,25 @@ final class TransactionDataset
                     kind: DimensionKind::TEMPORAL,
                     sensitivity: SensitivityLevel::INTERNAL,
                     nullable: true,
+                ),
+            ],
+            measures: [
+                new MeasureDefinition(
+                    key: 'transaction_count',
+                    label: 'Transaction Count',
+                    description: 'Number of account transactions in the result group.',
+                    dataType: FieldDataType::INTEGER,
+                    aggregation: AggregationFunction::COUNT,
+                    sensitivity: SensitivityLevel::INTERNAL,
+                ),
+                new MeasureDefinition(
+                    key: 'total_amount',
+                    label: 'Total Amount',
+                    description: 'Sum of transaction amounts in the result group.',
+                    dataType: FieldDataType::DECIMAL,
+                    aggregation: AggregationFunction::SUM,
+                    sensitivity: SensitivityLevel::CONFIDENTIAL,
+                    currencyDimension: 'currency',
                 ),
             ],
         );
