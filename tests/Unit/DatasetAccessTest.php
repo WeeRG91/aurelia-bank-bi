@@ -95,12 +95,14 @@ class DatasetAccessTest extends TestCase
                 key: DatasetKey::CUSTOMER_OVERVIEW,
                 label: 'Customer Overview',
                 description: 'Customer analytics.',
+                grain: 'One row per customer.',
                 status: DatasetStatus::ACTIVE,
             ),
             new DatasetDefinition(
                 key: DatasetKey::TRANSACTIONS,
                 label: 'Transactions',
                 description: 'Transaction analytics.',
+                grain: 'One row per account transaction.',
                 status: DatasetStatus::ACTIVE,
             ),
         ]);

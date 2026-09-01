@@ -46,6 +46,7 @@ class DatasetRegistryTest extends TestCase
         foreach ($definitions as $definition) {
             $this->assertNotSame('', trim($definition->label));
             $this->assertNotSame('', trim($definition->description));
+            $this->assertNotSame('', trim($definition->grain));
             $this->assertSame(
                 DatasetStatus::DRAFT,
                 $definition->status,

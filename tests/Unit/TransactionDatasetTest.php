@@ -115,4 +115,15 @@ class TransactionDatasetTest extends TestCase
             nullable: false,
         );
     }
+
+    public function test_transaction_dataset_has_a_stable_grain(): void
+    {
+        $dataset = (new DatasetRegistry)
+            ->get(DatasetKey::TRANSACTIONS);
+
+        $this->assertSame(
+            'One row per account transaction.',
+            $dataset->grain,
+        );
+    }
 }

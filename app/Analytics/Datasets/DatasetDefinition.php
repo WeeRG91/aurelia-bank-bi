@@ -19,6 +19,7 @@ final readonly class DatasetDefinition
         public DatasetKey $key,
         public string $label,
         public string $description,
+        public string $grain,
         public DatasetStatus $status,
         iterable $dimensions = [],
     ) {
@@ -31,6 +32,12 @@ final readonly class DatasetDefinition
         if (trim($this->description) === '') {
             throw new InvalidArgumentException(
                 'Dataset description must not be blank.',
+            );
+        }
+
+        if (trim($this->grain) === '') {
+            throw new InvalidArgumentException(
+                'Dataset grain must not be blank.',
             );
         }
 

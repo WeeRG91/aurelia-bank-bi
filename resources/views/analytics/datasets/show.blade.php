@@ -78,6 +78,16 @@
                                     <div class="mt-2 max-w-md text-sm text-slate-500">
                                         {{ $dimension->description }}
                                     </div>
+
+                                    <div class="mt-6 rounded-lg bg-slate-50 p-4">
+                                        <dt class="text-sm font-medium text-slate-500">
+                                            Dataset grain
+                                        </dt>
+
+                                        <dd class="mt-1 text-sm text-slate-900">
+                                            {{ $dataset->grain }}
+                                        </dd>
+                                    </div>
                                 </td>
 
                                 <td class="px-4 py-4">

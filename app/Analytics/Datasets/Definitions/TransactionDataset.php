@@ -18,6 +18,7 @@ final class TransactionDataset
             key: DatasetKey::TRANSACTIONS,
             label: 'Transactions',
             description: 'Account movements, transaction categories, directions, and statuses.',
+            grain: 'One row per account transaction.',
             status: DatasetStatus::DRAFT,
             dimensions: [
                 new DimensionDefinition(
