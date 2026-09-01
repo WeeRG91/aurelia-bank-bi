@@ -5,7 +5,9 @@ namespace Tests\Unit;
 use App\Analytics\Datasets\DatasetKey;
 use App\Analytics\Datasets\DatasetRegistry;
 use App\Analytics\Datasets\DimensionDefinition;
+use App\Analytics\Datasets\MeasureDefinition;
 use App\Analytics\Datasets\UnknownDimension;
+use App\Analytics\Datasets\UnknownMeasure;
 use App\Analytics\Queries\Sources\JoinDefinition;
 use App\Analytics\Queries\Sources\TransactionDatasetSource;
 use PHPUnit\Framework\TestCase;
@@ -114,5 +116,61 @@ class TransactionDatasetSourceTest extends TestCase
         );
 
         (new TransactionDatasetSource)->column('password');
+    }
+
+    public function test_every_semantic_measure_has_one_physical_mapping(): void
+    {
+        $dataset = (new DatasetRegistry)
+            ->get(DatasetKey::TRANSACTIONS);
+
+        $measureKeys = array_map(
+            fn (MeasureDefinition $measure): string => $measure->key,
+            $dataset->measures(),
+        );
+
+        $this->assertSame(
+            $measureKeys,
+            array_keys(
+                (new TransactionDatasetSource)->measureColumns(),
+            ),
+        );
+    }
+
+    public function test_measure_sources_use_safe_qualified_columns(): void
+    {
+        foreach (
+            (new TransactionDatasetSource)->measureColumns() as $column
+        ) {
+            $this->assertMatchesRegularExpression(
+                '/^[a-z][a-z0-9_]*\.[a-z][a-z0-9_]*$/',
+                $column,
+            );
+        }
+    }
+
+    public function test_transaction_measures_use_expected_fact_columns(): void
+    {
+        $source = new TransactionDatasetSource;
+
+        $this->assertSame(
+            'transactions.id',
+            $source->measureColumn('transaction_count'),
+        );
+
+        $this->assertSame(
+            'transactions.amount',
+            $source->measureColumn('total_amount'),
+        );
+    }
+
+    public function test_unknown_measure_cannot_become_a_physical_column(): void
+    {
+        $this->expectException(UnknownMeasure::class);
+        $this->expectExceptionMessage(
+            'Unknown measure [password_count] for dataset [transactions].',
+        );
+
+        (new TransactionDatasetSource)
+            ->measureColumn('password_count');
     }
 }

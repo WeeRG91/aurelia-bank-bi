@@ -4,6 +4,7 @@ namespace App\Analytics\Queries\Sources;
 
 use App\Analytics\Datasets\DatasetKey;
 use App\Analytics\Datasets\UnknownDimension;
+use App\Analytics\Datasets\UnknownMeasure;
 
 final class TransactionDatasetSource implements DatasetSource
 {
@@ -22,6 +23,11 @@ final class TransactionDatasetSource implements DatasetSource
         'status' => 'transactions.status',
         'booked_at' => 'transactions.booked_at',
         'value_date' => 'transactions.value_date',
+    ];
+
+    private const array MEASURE_COLUMNS = [
+        'transaction_count' => 'transactions.id',
+        'total_amount' => 'transactions.amount',
     ];
 
     public function dataset(): DatasetKey
@@ -67,5 +73,19 @@ final class TransactionDatasetSource implements DatasetSource
     public function branchScopeColumn(): string
     {
         return 'branches.id';
+    }
+
+    public function measureColumns(): array
+    {
+        return self::MEASURE_COLUMNS;
+    }
+
+    public function measureColumn(string $measure): string
+    {
+        return self::MEASURE_COLUMNS[$measure]
+            ?? throw UnknownMeasure::forDataset(
+                $this->dataset(),
+                $measure,
+            );
     }
 }
