@@ -2,12 +2,17 @@
 
 namespace App\Policies;
 
+use App\Authorization\EmployeeAccess;
 use App\Enums\EmployeeRole;
 use App\Models\Employee;
 use App\Models\User;
 
-class EmployeePolicy
+readonly class EmployeePolicy
 {
+    public function __construct(
+        private EmployeeAccess $employeeAccess,
+    ) {}
+
     public function before(User $user): ?bool
     {
         if (! $user->isActiveEmployee()) {
@@ -22,14 +27,7 @@ class EmployeePolicy
      */
     public function viewAny(User $user): bool
     {
-        $role = $user->employee?->role;
-
-        return in_array($role, [
-            EmployeeRole::BRANCH_MANAGER,
-            EmployeeRole::COUNTRY_MANAGER,
-            EmployeeRole::AUDITOR,
-            EmployeeRole::ADMINISTRATOR,
-        ], true);
+        return $this->employeeAccess->canViewDirectory($user);
     }
 
     /**
@@ -37,26 +35,7 @@ class EmployeePolicy
      */
     public function view(User $user, Employee $employee): bool
     {
-        $viewer = $user->employee;
-
-        if ($viewer === null) {
-            return false;
-        }
-
-        if ($employee->user_id === $user->getKey()) {
-            return true;
-        }
-
-        return match ($viewer->role) {
-            EmployeeRole::COUNTRY_MANAGER,
-            EmployeeRole::AUDITOR,
-            EmployeeRole::ADMINISTRATOR => true,
-
-            EmployeeRole::BRANCH_MANAGER => $viewer->branch_id !== null
-                && $viewer->branch_id === $employee->branch_id,
-
-            default => false,
-        };
+        return $this->employeeAccess->canView($user, $employee);
     }
 
     /**

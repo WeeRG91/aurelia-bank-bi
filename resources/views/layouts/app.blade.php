@@ -16,12 +16,30 @@
         </a>
 
         @auth
-            <a
-                href="{{ route('branches.index') }}"
-                class="text-sm font-medium text-slate-700 hover:text-amber-700"
-            >
-                Branches
-            </a>
+            <nav class="flex items-center gap-4">
+                <a
+                    href="{{ route('branches.index') }}"
+                    class="text-sm font-medium text-slate-700 hover:text-amber-700"
+                >
+                    Branches
+                </a>
+
+                <a
+                    href="{{ route('profile') }}"
+                    class="text-sm font-medium text-slate-700 hover:text-amber-700"
+                >
+                    My profile
+                </a>
+
+                @can('viewAny', \App\Models\Employee::class)
+                    <a
+                        href="{{ route('employees.index') }}"
+                        class="text-sm font-medium text-slate-700 hover:text-amber-700"
+                    >
+                        Employees
+                    </a>
+                @endcan
+            </nav>
 
             <div class="flex items-center gap-4">
                     <span class="text-sm text-slate-600">
