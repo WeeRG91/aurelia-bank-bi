@@ -2,6 +2,7 @@
 
 namespace App\Analytics\Datasets;
 
+use App\Analytics\Datasets\Definitions\TransactionDataset;
 use LogicException;
 
 final class DatasetRegistry
@@ -86,12 +87,7 @@ final class DatasetRegistry
                 description: 'Point-in-time ledger and available balances for banking accounts.',
                 status: DatasetStatus::DRAFT,
             ),
-            new DatasetDefinition(
-                key: DatasetKey::TRANSACTIONS,
-                label: 'Transactions',
-                description: 'Account movements, transaction categories, directions, and statuses.',
-                status: DatasetStatus::DRAFT,
-            ),
+            TransactionDataset::definition(),
             new DatasetDefinition(
                 key: DatasetKey::CARD_ACTIVITY,
                 label: 'Card Activity',

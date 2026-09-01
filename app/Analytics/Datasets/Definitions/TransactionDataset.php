@@ -1,0 +1,98 @@
+<?php
+
+namespace App\Analytics\Datasets\Definitions;
+
+use App\Analytics\Datasets\DatasetDefinition;
+use App\Analytics\Datasets\DatasetKey;
+use App\Analytics\Datasets\DatasetStatus;
+use App\Analytics\Datasets\DimensionDefinition;
+use App\Analytics\Datasets\DimensionKind;
+use App\Analytics\Datasets\FieldDataType;
+use App\Analytics\Datasets\SensitivityLevel;
+
+final class TransactionDataset
+{
+    public static function definition(): DatasetDefinition
+    {
+        return new DatasetDefinition(
+            key: DatasetKey::TRANSACTIONS,
+            label: 'Transactions',
+            description: 'Account movements, transaction categories, directions, and statuses.',
+            status: DatasetStatus::DRAFT,
+            dimensions: [
+                new DimensionDefinition(
+                    key: 'transaction_reference',
+                    label: 'Transaction Reference',
+                    description: 'Stable business reference assigned to the transaction.',
+                    dataType: FieldDataType::STRING,
+                    kind: DimensionKind::IDENTIFIER,
+                    sensitivity: SensitivityLevel::CONFIDENTIAL,
+                    nullable: false,
+                ),
+                new DimensionDefinition(
+                    key: 'transaction_type',
+                    label: 'Transaction Type',
+                    description: 'Business classification of the transaction.',
+                    dataType: FieldDataType::STRING,
+                    kind: DimensionKind::CATEGORICAL,
+                    sensitivity: SensitivityLevel::INTERNAL,
+                    nullable: false,
+                ),
+                new DimensionDefinition(
+                    key: 'category',
+                    label: 'Category',
+                    description: 'Reporting category assigned to the transaction.',
+                    dataType: FieldDataType::STRING,
+                    kind: DimensionKind::CATEGORICAL,
+                    sensitivity: SensitivityLevel::INTERNAL,
+                    nullable: false,
+                ),
+                new DimensionDefinition(
+                    key: 'currency',
+                    label: 'Currency',
+                    description: 'ISO 4217 currency code of the transaction.',
+                    dataType: FieldDataType::STRING,
+                    kind: DimensionKind::CATEGORICAL,
+                    sensitivity: SensitivityLevel::INTERNAL,
+                    nullable: false,
+                ),
+                new DimensionDefinition(
+                    key: 'direction',
+                    label: 'Direction',
+                    description: 'Incoming or outgoing movement direction.',
+                    dataType: FieldDataType::STRING,
+                    kind: DimensionKind::CATEGORICAL,
+                    sensitivity: SensitivityLevel::INTERNAL,
+                    nullable: false,
+                ),
+                new DimensionDefinition(
+                    key: 'status',
+                    label: 'Status',
+                    description: 'Current transaction processing status.',
+                    dataType: FieldDataType::STRING,
+                    kind: DimensionKind::CATEGORICAL,
+                    sensitivity: SensitivityLevel::INTERNAL,
+                    nullable: false,
+                ),
+                new DimensionDefinition(
+                    key: 'booked_at',
+                    label: 'Booked At',
+                    description: 'Date and time when the transaction was booked.',
+                    dataType: FieldDataType::DATETIME,
+                    kind: DimensionKind::TEMPORAL,
+                    sensitivity: SensitivityLevel::INTERNAL,
+                    nullable: true,
+                ),
+                new DimensionDefinition(
+                    key: 'value_date',
+                    label: 'Value Date',
+                    description: 'Banking date on which funds become effective.',
+                    dataType: FieldDataType::DATE,
+                    kind: DimensionKind::TEMPORAL,
+                    sensitivity: SensitivityLevel::INTERNAL,
+                    nullable: true,
+                ),
+            ],
+        );
+    }
+}
