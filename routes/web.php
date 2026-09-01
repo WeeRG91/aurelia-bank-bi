@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Analytics\DatasetCatalogController;
 use App\Http\Controllers\Auth\AuthenticatedSessionController;
 use App\Http\Controllers\BranchController;
 use App\Http\Controllers\DashboardController;
@@ -34,4 +35,14 @@ Route::middleware(['auth', 'active.employee'])->group(function (): void {
     Route::get('/employees/{employee}', [EmployeeController::class, 'show'])
         ->whereNumber('employee')
         ->name('employees.show');
+
+    Route::prefix('analytics')
+        ->name('analytics.')
+        ->group(function (): void {
+            Route::get('/datasets', [DatasetCatalogController::class, 'index'])
+                ->name('datasets.index');
+            Route::get('/datasets/{dataset}', [DatasetCatalogController::class, 'show'])
+                ->where('dataset', '[a-z_]+')
+                ->name('datasets.show');
+        });
 });

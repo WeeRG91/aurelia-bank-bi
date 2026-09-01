@@ -39,6 +39,13 @@
                         Employees
                     </a>
                 @endcan
+
+                <a
+                    href="{{ route('analytics.datasets.index') }}"
+                    class="text-sm font-medium text-slate-700 hover:text-amber-700"
+                >
+                    Datasets
+                </a>
             </nav>
 
             <div class="flex items-center gap-4">

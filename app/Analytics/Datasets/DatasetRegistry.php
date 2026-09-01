@@ -11,9 +11,9 @@ final class DatasetRegistry
      */
     private array $definitions = [];
 
-    public function __construct()
+    public function __construct(?iterable $definitions = null)
     {
-        foreach ($this->defaultDefinitions() as $definition) {
+        foreach ($definitions ?? $this->defaultDefinitions() as $definition) {
             $key = $definition->key->value;
 
             if (isset($this->definitions[$key])) {
