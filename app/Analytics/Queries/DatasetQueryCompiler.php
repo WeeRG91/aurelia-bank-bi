@@ -48,7 +48,7 @@ final readonly class DatasetQueryCompiler
         foreach ($query->measures as $measureKey) {
             $measure = $definition->measure($measureKey);
 
-            $this->assertCurrencySafety(
+            $this->assertMeasureContext(
                 $query,
                 $measure,
             );
@@ -188,28 +188,45 @@ final readonly class DatasetQueryCompiler
         };
     }
 
-    private function assertCurrencySafety(
+    private function assertMeasureContext(
         DatasetQuery $query,
         MeasureDefinition $measure,
     ): void {
-        $currencyDimension = $measure->currencyDimension;
-
-        if ($currencyDimension === null) {
-            return;
-        }
-
-        if (
-            in_array(
-                $currencyDimension,
-                $query->dimensions,
-                true,
-            )
+        foreach (
+            $measure->requiredContextDimensions() as $requiredDimension
         ) {
-            return;
-        }
+            if (
+                in_array(
+                    $requiredDimension,
+                    $query->dimensions,
+                    true,
+                )
+                || $this->hasSingleValueFilter(
+                    $query,
+                    $requiredDimension,
+                )
+            ) {
+                continue;
+            }
 
+            if ($requiredDimension === $measure->currencyDimension) {
+                throw new InvalidArgumentException(
+                    "Currency-aware measure [{$measure->key}] requires dimension [{$requiredDimension}] or a single-currency filter.",
+                );
+            }
+
+            throw new InvalidArgumentException(
+                "Measure [{$measure->key}] requires dimension [{$requiredDimension}] or a single-value filter.",
+            );
+        }
+    }
+
+    private function hasSingleValueFilter(
+        DatasetQuery $query,
+        string $dimension,
+    ): bool {
         foreach ($query->filters as $filter) {
-            if ($filter->dimension !== $currencyDimension) {
+            if ($filter->dimension !== $dimension) {
                 continue;
             }
 
@@ -218,7 +235,7 @@ final readonly class DatasetQueryCompiler
                 && ! is_array($filter->value)
                 && $filter->value !== null
             ) {
-                return;
+                return true;
             }
 
             if (
@@ -226,13 +243,11 @@ final readonly class DatasetQueryCompiler
                 && is_array($filter->value)
                 && count($filter->value) === 1
             ) {
-                return;
+                return true;
             }
         }
 
-        throw new InvalidArgumentException(
-            "Currency-aware measure [{$measure->key}] requires dimension [{$currencyDimension}] or a single-currency filter.",
-        );
+        return false;
     }
 
     private function compileScope(

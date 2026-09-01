@@ -138,4 +138,44 @@ class MeasureDefinitionTest extends TestCase
             currencyDimension: 'currency',
         );
     }
+
+    public function test_measure_can_require_context_dimensions(): void
+    {
+        $measure = new MeasureDefinition(
+            key: 'total_balance',
+            label: 'Total Balance',
+            description: 'Point-in-time balance total.',
+            dataType: FieldDataType::DECIMAL,
+            aggregation: AggregationFunction::SUM,
+            sensitivity: SensitivityLevel::CONFIDENTIAL,
+            currencyDimension: 'currency',
+            requiredDimensions: ['snapshot_date'],
+        );
+
+        $this->assertSame(
+            ['currency', 'snapshot_date'],
+            $measure->requiredContextDimensions(),
+        );
+    }
+
+    public function test_required_dimensions_must_be_unique(): void
+    {
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage(
+            'Required measure dimensions must be unique.',
+        );
+
+        new MeasureDefinition(
+            key: 'invalid_balance',
+            label: 'Invalid Balance',
+            description: 'Invalid balance.',
+            dataType: FieldDataType::DECIMAL,
+            aggregation: AggregationFunction::SUM,
+            sensitivity: SensitivityLevel::CONFIDENTIAL,
+            requiredDimensions: [
+                'snapshot_date',
+                'snapshot_date',
+            ],
+        );
+    }
 }

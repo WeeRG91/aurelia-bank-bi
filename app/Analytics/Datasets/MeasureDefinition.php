@@ -6,6 +6,9 @@ use InvalidArgumentException;
 
 final readonly class MeasureDefinition
 {
+    /**
+     * @param  list<string>  $requiredDimensions
+     */
     public function __construct(
         public string $key,
         public string $label,
@@ -14,6 +17,7 @@ final readonly class MeasureDefinition
         public AggregationFunction $aggregation,
         public SensitivityLevel $sensitivity,
         public ?string $currencyDimension = null,
+        public array $requiredDimensions = [],
     ) {
         if (preg_match('/^[a-z][a-z0-9_]*$/', $this->key) !== 1) {
             throw new InvalidArgumentException(
@@ -77,5 +81,59 @@ final readonly class MeasureDefinition
                 'Currency-aware measures must use the decimal data type.',
             );
         }
+
+        if (! array_is_list($this->requiredDimensions)) {
+            throw new InvalidArgumentException(
+                'Required measure dimensions must be a list.',
+            );
+        }
+
+        foreach ($this->requiredDimensions as $dimension) {
+            if (
+                ! is_string($dimension)
+                || preg_match('/^[a-z][a-z0-9_]*$/', $dimension) !== 1
+            ) {
+                throw new InvalidArgumentException(
+                    'Required measure dimensions must use safe semantic keys.',
+                );
+            }
+        }
+
+        if (
+            count(array_unique($this->requiredDimensions))
+            !== count($this->requiredDimensions)
+        ) {
+            throw new InvalidArgumentException(
+                'Required measure dimensions must be unique.',
+            );
+        }
+
+        if (
+            $this->currencyDimension !== null
+            && in_array(
+                $this->currencyDimension,
+                $this->requiredDimensions,
+                true,
+            )
+        ) {
+            throw new InvalidArgumentException(
+                'Currency dimension must not be duplicated in required dimensions.',
+            );
+        }
+    }
+
+    /**
+     * @return list<string>
+     */
+    public function requiredContextDimensions(): array
+    {
+        if ($this->currencyDimension === null) {
+            return $this->requiredDimensions;
+        }
+
+        return [
+            $this->currencyDimension,
+            ...$this->requiredDimensions,
+        ];
     }
 }

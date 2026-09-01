@@ -86,6 +86,14 @@ final readonly class DatasetDefinition
                 );
             }
 
+            foreach ($measure->requiredDimensions as $requiredDimension) {
+                if (! isset($indexedDimensions[$requiredDimension])) {
+                    throw new LogicException(
+                        "Required dimension [{$requiredDimension}] for measure [{$measure->key}] does not exist in dataset [{$this->key->value}].",
+                    );
+                }
+            }
+
             $indexedMeasures[$measure->key] = $measure;
         }
 
