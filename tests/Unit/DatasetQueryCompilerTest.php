@@ -8,6 +8,7 @@ use App\Analytics\Datasets\UnknownDimension;
 use App\Analytics\Filters\DimensionFilterRules;
 use App\Analytics\Filters\FilterCondition;
 use App\Analytics\Filters\FilterValidator;
+use App\Analytics\Queries\Authorization\DatasetRowScope;
 use App\Analytics\Queries\Compilation\FilterCompiler;
 use App\Analytics\Queries\DatasetQuery;
 use App\Analytics\Queries\DatasetQueryCompiler;
@@ -40,15 +41,16 @@ class DatasetQueryCompilerTest extends TestCase
         $compiled = $this->compiler()->compile(
             new TransactionDatasetSource,
             $query,
+            DatasetRowScope::branch(42),
         );
 
         $this->assertSame(
-            'SELECT transactions.transaction_reference AS transaction_reference, branches.branch_code AS branch, transactions.currency AS currency FROM transactions INNER JOIN accounts ON transactions.account_id = accounts.id INNER JOIN branches ON accounts.branch_id = branches.id WHERE transactions.currency = ? AND transactions.status IN (?, ?) LIMIT ?',
+            'SELECT transactions.transaction_reference AS transaction_reference, branches.branch_code AS branch, transactions.currency AS currency FROM transactions INNER JOIN accounts ON transactions.account_id = accounts.id INNER JOIN branches ON accounts.branch_id = branches.id WHERE branches.id = ? AND transactions.currency = ? AND transactions.status IN (?, ?) LIMIT ?',
             $compiled->sql,
         );
 
         $this->assertSame(
-            ['EUR', 'booked', 'reversed', 100],
+            [42, 'EUR', 'booked', 'reversed', 100],
             $compiled->bindings,
         );
     }
@@ -64,6 +66,7 @@ class DatasetQueryCompilerTest extends TestCase
         $compiled = $this->compiler()->compile(
             new TransactionDatasetSource,
             $query,
+            DatasetRowScope::unrestricted(),
         );
 
         $this->assertStringNotContainsString(
@@ -86,6 +89,7 @@ class DatasetQueryCompilerTest extends TestCase
         $this->compiler()->compile(
             new TransactionDatasetSource,
             $query,
+            DatasetRowScope::unrestricted(),
         );
     }
 
@@ -162,6 +166,58 @@ class DatasetQueryCompilerTest extends TestCase
     {
         return new DatasetQueryCompiler(
             new FilterCompiler,
+        );
+    }
+
+    public function test_denied_scope_produces_an_impossible_predicate(): void
+    {
+        $query = new DatasetQuery(
+            dataset: DatasetKey::TRANSACTIONS,
+            dimensions: ['transaction_reference'],
+        );
+
+        $compiled = $this->compiler()->compile(
+            new TransactionDatasetSource,
+            $query,
+            DatasetRowScope::denied(),
+        );
+
+        $this->assertStringContainsString(
+            ' WHERE 1 = 0 LIMIT ?',
+            $compiled->sql,
+        );
+
+        $this->assertSame([100], $compiled->bindings);
+    }
+
+    public function test_user_filter_cannot_replace_mandatory_branch_scope(): void
+    {
+        $query = new DatasetQuery(
+            dataset: DatasetKey::TRANSACTIONS,
+            dimensions: ['transaction_reference'],
+            filters: [
+                $this->filter(
+                    'branch',
+                    'equals',
+                    'ANOTHER-BRANCH',
+                ),
+            ],
+        );
+
+        $compiled = $this->compiler()->compile(
+            new TransactionDatasetSource,
+            $query,
+            DatasetRowScope::branch(42),
+        );
+
+        $this->assertStringContainsString(
+            'WHERE branches.id = ? AND branches.branch_code = ?',
+            $compiled->sql,
+        );
+
+        $this->assertSame(
+            [42, 'ANOTHER-BRANCH', 100],
+            $compiled->bindings,
         );
     }
 }

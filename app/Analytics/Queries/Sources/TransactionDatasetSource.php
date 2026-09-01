@@ -63,4 +63,9 @@ final class TransactionDatasetSource implements DatasetSource
             ),
         ];
     }
+
+    public function branchScopeColumn(): string
+    {
+        return 'branches.id';
+    }
 }

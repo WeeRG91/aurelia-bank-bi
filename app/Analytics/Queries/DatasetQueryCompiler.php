@@ -2,6 +2,9 @@
 
 namespace App\Analytics\Queries;
 
+use App\Analytics\Queries\Authorization\DatasetRowScope;
+use App\Analytics\Queries\Authorization\RowScopeType;
+use App\Analytics\Queries\Compilation\CompiledFilter;
 use App\Analytics\Queries\Compilation\FilterCompiler;
 use App\Analytics\Queries\Sources\DatasetSource;
 use LogicException;
@@ -15,6 +18,7 @@ final readonly class DatasetQueryCompiler
     public function compile(
         DatasetSource $source,
         DatasetQuery $query,
+        DatasetRowScope $scope,
     ): CompiledQuery {
         if ($source->dataset() !== $query->dataset) {
             throw new LogicException(
@@ -49,6 +53,20 @@ final readonly class DatasetQueryCompiler
         $bindings = [];
         $where = [];
 
+        $compiledScope = $this->compileScope(
+            $source,
+            $scope,
+        );
+
+        if ($compiledScope !== null) {
+            $where[] = $compiledScope->sql;
+
+            array_push(
+                $bindings,
+                ...$compiledScope->bindings,
+            );
+        }
+
         foreach ($query->filters as $filter) {
             $compiled = $this->filterCompiler->compile(
                 $source,
@@ -74,5 +92,29 @@ final readonly class DatasetQueryCompiler
             sql: $sql,
             bindings: $bindings,
         );
+    }
+
+    private function compileScope(
+        DatasetSource $source,
+        DatasetRowScope $scope,
+    ): ?CompiledFilter {
+        return match ($scope->type) {
+            RowScopeType::UNRESTRICTED => null,
+
+            RowScopeType::DENIED => new CompiledFilter(
+                sql: '1 = 0',
+                bindings: [],
+            ),
+
+            RowScopeType::BRANCH => new CompiledFilter(
+                sql: $source->branchScopeColumn().' = ?',
+                bindings: [
+                    $scope->branchId
+                    ?? throw new LogicException(
+                        'Branch row scope is missing its branch identifier.',
+                    ),
+                ],
+            ),
+        };
     }
 }

@@ -10,6 +10,8 @@ interface DatasetSource
 
     public function baseTable(): string;
 
+    public function branchScopeColumn(): string;
+
     /**
      * @return array<string, string>
      */

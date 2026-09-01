@@ -25,6 +25,11 @@ class TransactionDatasetSourceTest extends TestCase
             'transactions',
             $source->baseTable(),
         );
+
+        $this->assertSame(
+            'branches.id',
+            $source->branchScopeColumn(),
+        );
     }
 
     public function test_every_semantic_dimension_has_one_physical_mapping(): void
