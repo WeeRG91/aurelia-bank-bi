@@ -7,4 +7,5 @@ enum DimensionKind: string
     case IDENTIFIER = 'identifier';
     case CATEGORICAL = 'categorical';
     case TEMPORAL = 'temporal';
+    case GEOGRAPHIC = 'geographic';
 }

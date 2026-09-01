@@ -22,6 +22,9 @@ class TransactionDatasetTest extends TestCase
         $this->assertSame(
             [
                 'transaction_reference',
+                'branch',
+                'country',
+                'account_type',
                 'transaction_type',
                 'category',
                 'currency',
@@ -125,5 +128,36 @@ class TransactionDatasetTest extends TestCase
             'One row per account transaction.',
             $dataset->grain,
         );
+    }
+
+    public function test_transaction_organizational_dimensions_are_classified_correctly(): void
+    {
+        $dataset = (new DatasetRegistry)
+            ->get(DatasetKey::TRANSACTIONS);
+
+        $this->assertSame(
+            DimensionKind::CATEGORICAL,
+            $dataset->dimension('branch')->kind,
+        );
+
+        $this->assertSame(
+            DimensionKind::GEOGRAPHIC,
+            $dataset->dimension('country')->kind,
+        );
+
+        $this->assertSame(
+            DimensionKind::CATEGORICAL,
+            $dataset->dimension('account_type')->kind,
+        );
+    }
+
+    public function test_transaction_dataset_does_not_expose_unsafe_or_technical_dimensions(): void
+    {
+        $dataset = (new DatasetRegistry)
+            ->get(DatasetKey::TRANSACTIONS);
+
+        $this->assertNull($dataset->findDimension('id'));
+        $this->assertNull($dataset->findDimension('account_id'));
+        $this->assertNull($dataset->findDimension('customer_segment'));
     }
 }
