@@ -3,8 +3,12 @@ import { computed, ref } from 'vue';
 
 import type {
     DatasetSummary,
+    DimensionDefinition,
+    FilterOperator,
     MeasureDefinition,
     ReportBuilderBootstrap,
+    ReportFilterDraft,
+    ReportFilterPayload,
     ReportPreviewResponse,
     ValidationErrorResponse,
 } from './types';
@@ -12,6 +16,20 @@ import { axios } from '../bootstrap';
 
 const MAX_DIMENSIONS = 20;
 const MAX_MEASURES = 10;
+const MAX_FILTERS = 20;
+
+const FILTER_OPERATOR_LABELS: Record<FilterOperator, string> = {
+    equals: 'Equals',
+    not_equals: 'Does not equal',
+    in: 'Is one of',
+    not_in: 'Is not one of',
+    before: 'Before',
+    after: 'After',
+    on_or_after: 'On or after',
+    between: 'Between',
+    is_null: 'Is empty',
+    is_not_null: 'Is not empty',
+};
 
 const props = defineProps<{
     bootstrap: ReportBuilderBootstrap;
@@ -21,6 +39,8 @@ const selectedDatasetKey = ref(props.bootstrap.datasets[0]?.key ?? '');
 
 const selectedDimensionKeys = ref<string[]>([]);
 const selectedMeasureKeys = ref<string[]>([]);
+const selectedFilters = ref<ReportFilterDraft[]>([]);
+let nextFilterId = 1;
 
 const isPreviewLoading = ref<boolean>(false);
 const preview = ref<ReportPreviewResponse | null>(null);
@@ -51,6 +71,155 @@ const requiredDimensionKeys = computed<Set<string>>(() => {
 function clearPreview(): void {
     preview.value = null;
     previewError.value = null;
+}
+
+function dimensionForFilter(filter: ReportFilterDraft): DimensionDefinition | undefined {
+    return selectedDataset.value?.dimensions.find(
+        (dimension) => dimension.key === filter.dimension,
+    );
+}
+
+function addFilter(): void {
+    const dimension = selectedDataset.value?.dimensions[0];
+    const operator = dimension?.allowedOperators[0];
+
+    if (
+        dimension === undefined ||
+        operator === undefined ||
+        selectedFilters.value.length >= MAX_FILTERS
+    ) {
+        return;
+    }
+
+    selectedFilters.value = [
+        ...selectedFilters.value,
+        {
+            id: nextFilterId++,
+            dimension: dimension.key,
+            operator,
+            value: '',
+            upperValue: '',
+        },
+    ];
+
+    clearPreview();
+}
+
+function removeFilter(filterId: number): void {
+    selectedFilters.value = selectedFilters.value.filter((filter) => filter.id !== filterId);
+
+    clearPreview();
+}
+
+function changeFilterDimension(filter: ReportFilterDraft): void {
+    const dimension = dimensionForFilter(filter);
+    const operator = dimension?.allowedOperators[0];
+
+    if (operator !== undefined) {
+        filter.operator = operator;
+    }
+
+    filter.value = '';
+    filter.upperValue = '';
+    clearPreview();
+}
+
+function changeFilterOperator(filter: ReportFilterDraft): void {
+    filter.value = '';
+    filter.upperValue = '';
+    clearPreview();
+}
+
+function operatorNeedsNoValue(operator: FilterOperator): boolean {
+    return operator === 'is_null' || operator === 'is_not_null';
+}
+
+function operatorUsesList(operator: FilterOperator): boolean {
+    return operator === 'in' || operator === 'not_in';
+}
+
+function operatorUsesRange(operator: FilterOperator): boolean {
+    return operator === 'between';
+}
+
+function filterInputType(filter: ReportFilterDraft): string {
+    const dataType = dimensionForFilter(filter)?.dataType;
+
+    if (dataType === 'date') {
+        return 'date';
+    }
+
+    if (dataType === 'integer') {
+        return 'number';
+    }
+
+    return 'text';
+}
+
+function filterPlaceholder(filter: ReportFilterDraft): string {
+    const dataType = dimensionForFilter(filter)?.dataType;
+
+    if (dataType === 'datetime') {
+        return '2026-09-01T12:30:00+02:00';
+    }
+
+    return operatorUsesList(filter.operator) ? 'EUR, USD, GBP' : 'Enter a value';
+}
+
+function normalizeFilterScalar(
+    filter: ReportFilterDraft,
+    value: string,
+): string | number | boolean {
+    const dataType = dimensionForFilter(filter)?.dataType;
+
+    if (dataType === 'integer' && value.trim() !== '') {
+        return Number.parseInt(value, 10);
+    }
+
+    if (dataType === 'boolean') {
+        return value === 'true';
+    }
+
+    return value;
+}
+
+function toFilterPayload(filter: ReportFilterDraft): ReportFilterPayload {
+    if (operatorNeedsNoValue(filter.operator)) {
+        return {
+            dimension: filter.dimension,
+            operator: filter.operator,
+            value: null,
+        };
+    }
+
+    if (operatorUsesList(filter.operator)) {
+        return {
+            dimension: filter.dimension,
+            operator: filter.operator,
+            value: filter.value
+                .split(',')
+                .map((value) => value.trim())
+                .filter((value) => value !== '')
+                .map((value) => normalizeFilterScalar(filter, value)),
+        };
+    }
+
+    if (operatorUsesRange(filter.operator)) {
+        return {
+            dimension: filter.dimension,
+            operator: filter.operator,
+            value: [
+                normalizeFilterScalar(filter, filter.value),
+                normalizeFilterScalar(filter, filter.upperValue),
+            ],
+        };
+    }
+
+    return {
+        dimension: filter.dimension,
+        operator: filter.operator,
+        value: normalizeFilterScalar(filter, filter.value),
+    };
 }
 
 async function previewReport(): Promise<void> {
@@ -112,6 +281,7 @@ function selectDataset(datasetKey: string): void {
     selectedDatasetKey.value = datasetKey;
     selectedDimensionKeys.value = [];
     selectedMeasureKeys.value = [];
+    selectedFilters.value = [];
     clearPreview();
 }
 
@@ -333,12 +503,155 @@ function toggleMeasure(measure: MeasureDefinition): void {
                 </section>
             </div>
 
+            <section class="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+                <div class="flex items-center justify-between gap-4">
+                    <div>
+                        <h3 class="font-semibold text-slate-950">Filters</h3>
+
+                        <p class="mt-1 text-sm text-slate-500">
+                            Restrict rows before measures are calculated.
+                        </p>
+                    </div>
+
+                    <button
+                        type="button"
+                        class="rounded-lg border border-slate-300 px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-40"
+                        :disabled="selectedFilters.length >= MAX_FILTERS"
+                        @click="addFilter"
+                    >
+                        Add filter
+                    </button>
+                </div>
+
+                <p
+                    v-if="selectedFilters.length === 0"
+                    class="mt-5 rounded-lg bg-slate-50 p-4 text-sm text-slate-500"
+                >
+                    No filters applied.
+                </p>
+
+                <div v-else class="mt-5 space-y-4">
+                    <div
+                        v-for="filter in selectedFilters"
+                        :key="filter.id"
+                        class="rounded-lg border border-slate-200 p-4"
+                    >
+                        <div class="grid gap-4 lg:grid-cols-[1fr_1fr_auto]">
+                            <label class="block">
+                                <span class="text-xs font-semibold text-slate-600">
+                                    Dimension
+                                </span>
+
+                                <select
+                                    v-model="filter.dimension"
+                                    class="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm"
+                                    @change="changeFilterDimension(filter)"
+                                >
+                                    <option
+                                        v-for="dimension in selectedDataset.dimensions"
+                                        :key="dimension.key"
+                                        :value="dimension.key"
+                                    >
+                                        {{ dimension.label }}
+                                    </option>
+                                </select>
+                            </label>
+
+                            <label class="block">
+                                <span class="text-xs font-semibold text-slate-600"> Operator </span>
+
+                                <select
+                                    v-model="filter.operator"
+                                    class="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm"
+                                    @change="changeFilterOperator(filter)"
+                                >
+                                    <option
+                                        v-for="operator in dimensionForFilter(filter)
+                                            ?.allowedOperators ?? []"
+                                        :key="operator"
+                                        :value="operator"
+                                    >
+                                        {{ FILTER_OPERATOR_LABELS[operator] }}
+                                    </option>
+                                </select>
+                            </label>
+
+                            <button
+                                type="button"
+                                class="self-end rounded-lg px-3 py-2 text-sm font-medium text-red-700 hover:bg-red-50"
+                                @click="removeFilter(filter.id)"
+                            >
+                                Remove
+                            </button>
+                        </div>
+
+                        <div
+                            v-if="operatorNeedsNoValue(filter.operator)"
+                            class="mt-4 text-sm text-slate-500"
+                        >
+                            This operator does not require a value.
+                        </div>
+
+                        <div
+                            v-else-if="operatorUsesRange(filter.operator)"
+                            class="mt-4 grid gap-4 sm:grid-cols-2"
+                        >
+                            <input
+                                v-model="filter.value"
+                                :type="filterInputType(filter)"
+                                :placeholder="filterPlaceholder(filter)"
+                                class="rounded-lg border border-slate-300 px-3 py-2 text-sm"
+                                @input="clearPreview"
+                            />
+
+                            <input
+                                v-model="filter.upperValue"
+                                :type="filterInputType(filter)"
+                                :placeholder="filterPlaceholder(filter)"
+                                class="rounded-lg border border-slate-300 px-3 py-2 text-sm"
+                                @input="clearPreview"
+                            />
+                        </div>
+
+                        <textarea
+                            v-else-if="operatorUsesList(filter.operator)"
+                            v-model="filter.value"
+                            rows="2"
+                            :placeholder="filterPlaceholder(filter)"
+                            class="mt-4 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
+                            @input="clearPreview"
+                        />
+
+                        <select
+                            v-else-if="dimensionForFilter(filter)?.dataType === 'boolean'"
+                            v-model="filter.value"
+                            class="mt-4 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm"
+                            @change="clearPreview"
+                        >
+                            <option value="">Select a value</option>
+                            <option value="true">Yes</option>
+                            <option value="false">No</option>
+                        </select>
+
+                        <input
+                            v-else
+                            v-model="filter.value"
+                            :type="filterInputType(filter)"
+                            :placeholder="filterPlaceholder(filter)"
+                            class="mt-4 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
+                            @input="clearPreview"
+                        />
+                    </div>
+                </div>
+            </section>
+
             <footer class="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
                 <h3 class="font-semibold text-slate-950">Report definition</h3>
 
                 <p class="mt-2 text-sm text-slate-600">
-                    {{ selectedDimensionKeys.length }} dimensions and
-                    {{ selectedMeasureKeys.length }} measures selected.
+                    {{ selectedDimensionKeys.length }} dimensions,
+                    {{ selectedMeasureKeys.length }} measures and
+                    {{ selectedFilters.length }} filters selected.
                 </p>
 
                 <button

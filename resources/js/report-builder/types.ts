@@ -84,12 +84,20 @@ export interface ValidationErrorResponse {
     errors?: Record<string, string[]>;
 }
 
-export type FilerScalarValue = string | number | boolean;
+export type FilterScalarValue = string | number | boolean;
 
-export type FilterValue = FilerScalarValue | FilerScalarValue[] | null;
+export type FilterValue = FilterScalarValue | FilterScalarValue[] | null;
 
 export interface ReportFilterPayload {
     dimension: string;
     operator: FilterOperator;
     value: FilterValue;
+}
+
+export interface ReportFilterDraft {
+    id: number;
+    dimension: string;
+    operator: FilterOperator;
+    value: string;
+    upperValue: string;
 }
