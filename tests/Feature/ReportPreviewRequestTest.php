@@ -117,6 +117,67 @@ class ReportPreviewRequestTest extends TestCase
         $this->assertFalse($administratorRequest->authorize());
     }
 
+    public function test_valid_filter_passes_semantic_validation(): void
+    {
+        $validator = $this->validator([
+            'dataset' => 'transactions',
+            'dimensions' => ['transaction_reference'],
+            'measures' => [],
+            'filters' => [
+                [
+                    'dimension' => 'currency',
+                    'operator' => 'equals',
+                    'value' => 'EUR',
+                ],
+            ],
+        ]);
+
+        $this->assertTrue($validator->passes());
+    }
+
+    public function test_incompatible_filter_operator_is_rejected(): void
+    {
+        $validator = $this->validator([
+            'dataset' => 'transactions',
+            'dimensions' => ['transaction_reference'],
+            'measures' => [],
+            'filters' => [
+                [
+                    'dimension' => 'currency',
+                    'operator' => 'before',
+                    'value' => 'EUR',
+                ],
+            ],
+        ]);
+
+        $this->assertTrue($validator->fails());
+
+        $this->assertSame(
+            [
+                'Operator [before] is not supported for dimension [currency].',
+            ],
+            $validator->errors()->get('filters.0'),
+        );
+    }
+
+    public function test_null_filter_operator_accepts_explicit_null(): void
+    {
+        $validator = $this->validator([
+            'dataset' => 'transactions',
+            'dimensions' => ['transaction_reference'],
+            'measures' => [],
+            'filters' => [
+                [
+                    'dimension' => 'booked_at',
+                    'operator' => 'is_null',
+                    'value' => null,
+                ],
+            ],
+        ]);
+
+        $this->assertTrue($validator->passes());
+    }
+
     /**
      * @param  array<string, mixed>  $payload
      */

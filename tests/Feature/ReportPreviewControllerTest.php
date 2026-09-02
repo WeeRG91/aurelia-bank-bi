@@ -31,10 +31,16 @@ class ReportPreviewControllerTest extends TestCase
         $connection->expects($this->once())
             ->method('select')
             ->with(
-                $this->stringContains(
-                    'WHERE branches.id = ?',
+                $this->callback(
+                    static fn (string $sql): bool => str_contains(
+                        $sql,
+                        'WHERE branches.id = ?',
+                    ) && str_contains(
+                        $sql,
+                        'transactions.currency = ?',
+                    ),
                 ),
-                [42, 100],
+                [42, 'EUR', 100],
             )
             ->willReturn([
                 (object) [
@@ -71,6 +77,13 @@ class ReportPreviewControllerTest extends TestCase
                     'dataset' => 'transactions',
                     'dimensions' => ['transaction_reference'],
                     'measures' => [],
+                    'filters' => [
+                        [
+                            'dimension' => 'currency',
+                            'operator' => 'equals',
+                            'value' => 'EUR',
+                        ],
+                    ],
                     'limit' => 100,
                 ],
             );
