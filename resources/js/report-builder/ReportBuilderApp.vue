@@ -133,6 +133,8 @@ function toggleDimension(dimensionKey: string): void {
             return;
         }
 
+        clearPreview();
+
         selectedDimensionKeys.value = selectedDimensionKeys.value.filter(
             (key) => key !== dimensionKey,
         );
@@ -151,6 +153,8 @@ function toggleDimension(dimensionKey: string): void {
 
 function toggleMeasure(measure: MeasureDefinition): void {
     if (isMeasureSelected(measure.key)) {
+        clearPreview();
+
         selectedMeasureKeys.value = selectedMeasureKeys.value.filter((key) => key !== measure.key);
 
         return;
