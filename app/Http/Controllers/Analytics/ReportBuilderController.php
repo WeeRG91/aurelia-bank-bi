@@ -6,6 +6,8 @@ use App\Analytics\Datasets\DatasetAccess;
 use App\Analytics\Datasets\DatasetDefinition;
 use App\Analytics\Datasets\DimensionDefinition;
 use App\Analytics\Datasets\MeasureDefinition;
+use App\Analytics\Filters\DimensionFilterRules;
+use App\Analytics\Filters\FilterOperator;
 use App\Analytics\Time\ReportingTimezone;
 use App\Http\Controllers\Controller;
 use App\Models\User;
@@ -21,6 +23,7 @@ final class ReportBuilderController extends Controller
     public function __invoke(
         Request $request,
         DatasetAccess $datasetAccess,
+        DimensionFilterRules $filterRules,
     ): View {
         /** @var User $user */
         $user = $request->user();
@@ -44,6 +47,10 @@ final class ReportBuilderController extends Controller
                         'kind' => $dimension->kind->value,
                         'sensitivity' => $dimension->sensitivity->value,
                         'nullable' => $dimension->nullable,
+                        'allowedOperators' => array_map(
+                            static fn (FilterOperator $operator): string => $operator->value,
+                            $filterRules->allowedOperators($dimension),
+                        ),
                     ],
                     $dataset->dimensions(),
                 ),

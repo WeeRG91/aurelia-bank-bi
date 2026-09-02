@@ -6,6 +6,18 @@ export type SensitivityLevel = 'internal' | 'confidential' | 'restricted';
 
 export type AggregationFunction = 'count' | 'sum' | 'average' | 'minimum' | 'maximum';
 
+export type FilterOperator =
+    | 'equals'
+    | 'not_equals'
+    | 'in'
+    | 'not_in'
+    | 'before'
+    | 'after'
+    | 'on_or_after'
+    | 'between'
+    | 'is_null'
+    | 'is_not_null';
+
 export interface DimensionDefinition {
     key: string;
     label: string;
@@ -14,6 +26,7 @@ export interface DimensionDefinition {
     kind: DimensionKind;
     sensitivity: SensitivityLevel;
     nullable: boolean;
+    allowedOperators: FilterOperator[];
 }
 
 export interface MeasureDefinition {
@@ -46,6 +59,7 @@ export interface ReportPreviewPayload {
     dataset: string;
     dimensions: string[];
     measures: string[];
+    filters: ReportFilterPayload[];
     limit: number;
 }
 
@@ -68,4 +82,14 @@ export interface ReportPreviewResponse {
 export interface ValidationErrorResponse {
     message?: string;
     errors?: Record<string, string[]>;
+}
+
+export type FilerScalarValue = string | number | boolean;
+
+export type FilterValue = FilerScalarValue | FilerScalarValue[] | null;
+
+export interface ReportFilterPayload {
+    dimension: string;
+    operator: FilterOperator;
+    value: FilterValue;
 }
