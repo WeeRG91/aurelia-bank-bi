@@ -11,8 +11,11 @@ use App\Analytics\Filters\FilterOperator;
 use App\Analytics\Time\RelativeDatePreset;
 use App\Analytics\Time\ReportingTimezone;
 use App\Http\Controllers\Controller;
+use App\Http\Resources\Analytics\SavedReportResource;
+use App\Models\SavedReport;
 use App\Models\User;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\View\View;
 use JsonException;
 
@@ -25,9 +28,27 @@ final class ReportBuilderController extends Controller
         Request $request,
         DatasetAccess $datasetAccess,
         DimensionFilterRules $filterRules,
+        ?SavedReport $savedReport = null,
     ): View {
         /** @var User $user */
         $user = $request->user();
+
+        $initialReport = null;
+
+        if ($savedReport !== null) {
+            Gate::authorize('view', $savedReport);
+
+            abort_unless(
+                $datasetAccess->canUse(
+                    $user,
+                    $savedReport->dataset,
+                ),
+                403,
+            );
+
+            $initialReport = (new SavedReportResource($savedReport))
+                ->resolve($request);
+        }
 
         $reportingTimezone = new ReportingTimezone(
             (string) config('analytics.reporting_timezone'),
@@ -81,6 +102,7 @@ final class ReportBuilderController extends Controller
                 RelativeDatePreset::cases(),
             ),
             'saveReportUrl' => route('analytics.saved-reports.store'),
+            'initialReport' => $initialReport,
         ];
 
         return view('analytics.report-builder', [

@@ -13,6 +13,7 @@ import type {
     ReportFilterPayload,
     ReportPreviewPayload,
     ReportPreviewResponse,
+    SavedReportData,
     StoreSavedReportPayload,
     StoreSavedReportResponse,
     ValidationErrorResponse,
@@ -52,25 +53,60 @@ const props = defineProps<{
     bootstrap: ReportBuilderBootstrap;
 }>();
 
-const selectedDatasetKey = ref(props.bootstrap.datasets[0]?.key ?? '');
-
-const selectedDimensionKeys = ref<string[]>([]);
-const selectedMeasureKeys = ref<string[]>([]);
-const selectedFilters = ref<ReportFilterDraft[]>([]);
-const selectedRelativeDateDimension = ref<string>('');
-const selectedRelativeDatePreset = ref<RelativeDatePreset | ''>('');
+const initialReport = props.bootstrap.initialReport;
 
 let nextFilterId = 1;
+
+function toFilterDraft(filter: ReportFilterPayload): ReportFilterDraft {
+    let value = '';
+    let upperValue = '';
+
+    if (Array.isArray(filter.value)) {
+        if (filter.operator === 'between') {
+            value = String(filter.value[0] ?? '');
+            upperValue = String(filter.value[1] ?? '');
+        } else {
+            value = filter.value.map(String).join(', ');
+        }
+    } else if (filter.value !== null) {
+        value = String(filter.value);
+    }
+
+    return {
+        id: nextFilterId++,
+        dimension: filter.dimension,
+        operator: filter.operator,
+        value,
+        upperValue,
+    };
+}
+
+const selectedDatasetKey = ref(initialReport?.dataset ?? props.bootstrap.datasets[0]?.key ?? '');
+const selectedDimensionKeys = ref<string[]>(initialReport?.definition.dimensions ?? []);
+const selectedMeasureKeys = ref<string[]>(initialReport?.definition.measures ?? []);
+const selectedFilters = ref<ReportFilterDraft[]>(
+    initialReport?.definition.filters.map(toFilterDraft) ?? [],
+);
+const selectedRelativeDateDimension = ref<string>(
+    initialReport?.definition.relative_date?.dimension ?? '',
+);
+const selectedRelativeDatePreset = ref<RelativeDatePreset | ''>(
+    initialReport?.definition.relative_date?.preset ?? '',
+);
+
+const reportLimit = ref<number>(initialReport?.definition.limit ?? 100);
+
+const reportName = ref<string>(initialReport?.name ?? '');
+const reportDescription = ref<string>(initialReport?.description ?? '');
+
+const editingReport = ref<SavedReportData | null>(initialReport);
+const isSaveLoading = ref<boolean>(false);
+const saveError = ref<string | null>(null);
+const saveSuccessMessage = ref<string | null>(null);
 
 const isPreviewLoading = ref<boolean>(false);
 const preview = ref<ReportPreviewResponse | null>(null);
 const previewError = ref<string | null>(null);
-
-const reportName = ref<string>('');
-const reportDescription = ref<string>('');
-const isSaveLoading = ref<boolean>(false);
-const saveError = ref<string | null>(null);
-const savedReport = ref<StoreSavedReportResponse['data'] | null>(null);
 
 const previewColumns = computed<string[]>(() => {
     if (preview.value === null) {
@@ -109,12 +145,12 @@ function clearPreview(): void {
     preview.value = null;
     previewError.value = null;
     saveError.value = null;
-    savedReport.value = null;
+    saveSuccessMessage.value = null;
 }
 
 function clearSaveFeedback(): void {
     saveError.value = null;
-    savedReport.value = null;
+    saveSuccessMessage.value = null;
 }
 
 function dimensionForFilter(filter: ReportFilterDraft): DimensionDefinition | undefined {
@@ -310,7 +346,7 @@ function buildReportPayload(): ReportPreviewPayload | null {
         measures: selectedMeasureKeys.value,
         filters: selectedFilters.value.map(toFilterPayload),
         relative_date: relativeDateSelection,
-        limit: 100,
+        limit: reportLimit.value,
     };
 }
 
@@ -367,7 +403,6 @@ async function saveReport(): Promise<void> {
 
     isSaveLoading.value = true;
     saveError.value = null;
-    savedReport.value = null;
 
     const description = reportDescription.value.trim();
 
@@ -378,14 +413,21 @@ async function saveReport(): Promise<void> {
     };
 
     try {
-        const response = await axios.post<StoreSavedReportResponse>(
-            props.bootstrap.saveReportUrl,
-            payload,
-        );
+        const reportBeingEdited = editingReport.value;
 
-        savedReport.value = response.data.data;
+        const response =
+            reportBeingEdited === null
+                ? await axios.post<StoreSavedReportResponse>(props.bootstrap.saveReportUrl, payload)
+                : await axios.put<StoreSavedReportResponse>(reportBeingEdited.updateUrl, payload);
+
+        editingReport.value = response.data.data;
         reportName.value = response.data.data.name;
         reportDescription.value = response.data.data.description ?? '';
+
+        saveSuccessMessage.value =
+            reportBeingEdited === null
+                ? `“${response.data.data.name}” was saved successfully.`
+                : `“${response.data.data.name}” was updated successfully.`;
     } catch (error: unknown) {
         if (axios.isAxiosError<ValidationErrorResponse>(error)) {
             const validationErrors = error.response?.data.errors;
@@ -870,6 +912,10 @@ function toggleMeasure(measure: MeasureDefinition): void {
                     {{ RELATIVE_DATE_PRESET_LABELS[selectedRelativeDatePreset] }}.
                 </p>
 
+                <p v-if="editingReport !== null" class="mt-4 text-sm font-medium text-blue-700">
+                    Editing saved report #{{ editingReport.id }}
+                </p>
+
                 <div class="mt-5 grid gap-4 lg:grid-cols-2">
                     <label class="grid gap-2 text-sm font-medium text-slate-700">
                         Report name
@@ -921,7 +967,13 @@ function toggleMeasure(measure: MeasureDefinition): void {
                         "
                         @click="saveReport"
                     >
-                        {{ isSaveLoading ? 'Saving report…' : 'Save report' }}
+                        {{
+                            isSaveLoading
+                                ? 'Saving report…'
+                                : editingReport === null
+                                  ? 'Save report'
+                                  : 'Update report'
+                        }}
                     </button>
                 </div>
 
@@ -933,11 +985,10 @@ function toggleMeasure(measure: MeasureDefinition): void {
                 </p>
 
                 <p
-                    v-if="savedReport !== null"
+                    v-if="saveSuccessMessage !== null"
                     class="mt-4 rounded-lg border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-800"
                 >
-                    “{{ savedReport.name }}” was saved successfully as version
-                    {{ savedReport.definitionVersion }}.
+                    {{ saveSuccessMessage }}
                 </p>
             </footer>
 

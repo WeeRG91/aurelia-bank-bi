@@ -44,7 +44,8 @@ Route::middleware(['auth', 'active.employee'])->group(function (): void {
     Route::prefix('analytics')
         ->name('analytics.')
         ->group(function (): void {
-            Route::get('/report-builder', ReportBuilderController::class)
+            Route::get('/report-builder/{savedReport?}', ReportBuilderController::class)
+                ->whereNumber('savedReport')
                 ->name('report-builder');
             Route::post('/report-preview', ReportPreviewController::class)
                 ->name('report-preview');

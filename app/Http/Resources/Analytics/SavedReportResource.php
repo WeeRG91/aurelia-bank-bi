@@ -25,6 +25,10 @@ final class SavedReportResource extends JsonResource
             'definition' => $this->definition,
             'createdAt' => $this->created_at?->toAtomString(),
             'updatedAt' => $this->updated_at?->toAtomString(),
+            'updateUrl' => route(
+                'analytics.saved-reports.update',
+                $this->resource,
+            ),
         ];
     }
 }

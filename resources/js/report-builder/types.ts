@@ -66,6 +66,7 @@ export interface ReportBuilderBootstrap {
     datasets: DatasetSummary[];
     relativeDatePresets: RelativeDatePreset[];
     saveReportUrl: string;
+    initialReport: SavedReportData | null;
 }
 
 export interface ReportPreviewPayload {
@@ -127,14 +128,17 @@ export interface StoreSavedReportPayload extends ReportPreviewPayload {
 }
 
 export interface StoreSavedReportResponse {
-    data: {
-        id: number;
-        name: string;
-        description: string | null;
-        dataset: string;
-        definitionVersion: number;
-        definition: Omit<ReportPreviewPayload, 'dataset'>;
-        createdAt: string | null;
-        updatedAt: string | null;
-    };
+    data: SavedReportData;
+}
+
+export interface SavedReportData {
+    id: number;
+    name: string;
+    description: string | null;
+    dataset: string;
+    definitionVersion: number;
+    definition: Omit<ReportPreviewPayload, 'dataset'>;
+    createdAt: string | null;
+    updatedAt: string | null;
+    updateUrl: string;
 }

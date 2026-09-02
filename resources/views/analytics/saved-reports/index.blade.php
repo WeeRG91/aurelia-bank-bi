@@ -45,9 +45,12 @@
                 @forelse ($reports as $report)
                     <tr>
                         <td class="px-6 py-4">
-                            <p class="font-medium text-slate-950">
+                            <a
+                                href="{{ route('analytics.report-builder', ['savedReport' => $report]) }}"
+                                class="font-medium text-blue-700 hover:underline"
+                            >
                                 {{ $report->name }}
-                            </p>
+                            </a>
 
                             @if ($report->description !== null)
                                 <p class="mt-1 max-w-md text-slate-500">
