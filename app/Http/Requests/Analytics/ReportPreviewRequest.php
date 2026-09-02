@@ -5,6 +5,8 @@ namespace App\Http\Requests\Analytics;
 use App\Analytics\Datasets\DatasetAccess;
 use App\Analytics\Datasets\DatasetKey;
 use App\Analytics\Datasets\DatasetRegistry;
+use App\Analytics\Queries\DatasetQuery;
+use App\Analytics\Time\ReportingTimezone;
 use App\Models\User;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
@@ -153,5 +155,28 @@ final class ReportPreviewRequest extends FormRequest
                 }
             },
         ];
+    }
+
+    public function toDatasetQuery(): DatasetQuery
+    {
+        /**
+         * @var array{
+         *     dataset: string,
+         *     dimensions: list<string>,
+         *     measures: list<string>,
+         *     limit?: int
+         * } $validated
+         */
+        $validated = $this->validated();
+
+        return new DatasetQuery(
+            dataset: DatasetKey::from($validated['dataset']),
+            dimensions: $validated['dimensions'],
+            measures: $validated['measures'],
+            limit: $validated['limit'] ?? 100,
+            reportingTimezone: new ReportingTimezone(
+                (string) config('analytics.reporting_timezone'),
+            ),
+        );
     }
 }
