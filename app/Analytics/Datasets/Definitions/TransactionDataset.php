@@ -22,7 +22,7 @@ final class TransactionDataset
             label: 'Transactions',
             description: 'Account movements, transaction categories, directions, and statuses.',
             grain: 'One row per account transaction.',
-            status: DatasetStatus::DRAFT,
+            status: DatasetStatus::ACTIVE,
             dimensions: [
                 new DimensionDefinition(
                     key: 'transaction_reference',

@@ -23,9 +23,13 @@ use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Database\ConnectionInterface;
 use Illuminate\Database\DatabaseManager;
 use PHPUnit\Framework\TestCase;
+use Throwable;
 
 class AuthorizedDatasetQueryExecutorTest extends TestCase
 {
+    /**
+     * @throws Throwable
+     */
     public function test_authorized_query_executes_inside_a_read_only_transaction(): void
     {
         $database = $this->createMock(DatabaseManager::class);
@@ -98,6 +102,9 @@ class AuthorizedDatasetQueryExecutorTest extends TestCase
         );
     }
 
+    /**
+     * @throws Throwable
+     */
     public function test_unauthorized_query_never_requests_a_database_connection(): void
     {
         $database = $this->createMock(DatabaseManager::class);
@@ -108,10 +115,10 @@ class AuthorizedDatasetQueryExecutorTest extends TestCase
         $this->expectException(AuthorizationException::class);
 
         $this->executor(
-            new DatasetRegistry,
+            $this->activeRegistry(),
             $database,
         )->executeFor(
-            $this->user(EmployeeRole::AUDITOR),
+            $this->user(EmployeeRole::ADMINISTRATOR),
             new TransactionDatasetSource,
             new DatasetQuery(
                 dataset: DatasetKey::TRANSACTIONS,

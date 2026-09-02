@@ -22,7 +22,7 @@ final class AccountBalanceDataset
             label: 'Account Balances',
             description: 'Point-in-time ledger and available balances for banking accounts.',
             grain: 'One row per account per snapshot date.',
-            status: DatasetStatus::DRAFT,
+            status: DatasetStatus::ACTIVE,
             dimensions: [
                 new DimensionDefinition(
                     key: 'account_number',

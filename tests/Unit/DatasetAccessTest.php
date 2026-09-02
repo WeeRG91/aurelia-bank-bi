@@ -198,6 +198,25 @@ class DatasetAccessTest extends TestCase
         );
     }
 
+    public function test_branch_analyst_discovers_supported_active_datasets(): void
+    {
+        $datasets = (new DatasetAccess(new DatasetRegistry))
+            ->discoverableTo(
+                $this->user(EmployeeRole::BRANCH_ANALYST),
+            );
+
+        $this->assertSame(
+            [
+                'account_balances',
+                'transactions',
+            ],
+            array_map(
+                fn (DatasetDefinition $definition): string => $definition->key->value,
+                $datasets,
+            ),
+        );
+    }
+
     private function user(
         EmployeeRole $role,
         EmployeeStatus $status = EmployeeStatus::ACTIVE,

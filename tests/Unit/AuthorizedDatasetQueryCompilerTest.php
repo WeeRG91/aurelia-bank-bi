@@ -24,7 +24,7 @@ class AuthorizedDatasetQueryCompilerTest extends TestCase
 {
     public function test_branch_analyst_receives_mandatory_branch_scope(): void
     {
-        $compiler = $this->compiler($this->activeRegistry());
+        $compiler = $this->compiler($this->transactionRegistry(DatasetStatus::ACTIVE));
 
         $query = new DatasetQuery(
             dataset: DatasetKey::TRANSACTIONS,
@@ -50,7 +50,7 @@ class AuthorizedDatasetQueryCompilerTest extends TestCase
 
     public function test_global_analytical_role_has_no_branch_predicate(): void
     {
-        $compiled = $this->compiler($this->activeRegistry())
+        $compiled = $this->compiler($this->transactionRegistry(DatasetStatus::ACTIVE))
             ->compileFor(
                 $this->user(EmployeeRole::AUDITOR),
                 new TransactionDatasetSource,
@@ -75,7 +75,7 @@ class AuthorizedDatasetQueryCompilerTest extends TestCase
             'Dataset [transactions] is not available to this user.',
         );
 
-        $this->compiler(new DatasetRegistry)->compileFor(
+        $this->compiler($this->transactionRegistry(DatasetStatus::DRAFT))->compileFor(
             $this->user(EmployeeRole::AUDITOR),
             new TransactionDatasetSource,
             new DatasetQuery(
@@ -89,7 +89,7 @@ class AuthorizedDatasetQueryCompilerTest extends TestCase
     {
         $this->expectException(AuthorizationException::class);
 
-        $this->compiler($this->activeRegistry())->compileFor(
+        $this->compiler($this->transactionRegistry(DatasetStatus::ACTIVE))->compileFor(
             $this->user(EmployeeRole::ADMINISTRATOR),
             new TransactionDatasetSource,
             new DatasetQuery(
@@ -106,7 +106,7 @@ class AuthorizedDatasetQueryCompilerTest extends TestCase
             'No authorized row scope is available for dataset [transactions].',
         );
 
-        $this->compiler($this->activeRegistry())->compileFor(
+        $this->compiler($this->transactionRegistry(DatasetStatus::ACTIVE))->compileFor(
             $this->user(EmployeeRole::COUNTRY_MANAGER),
             new TransactionDatasetSource,
             new DatasetQuery(
@@ -131,20 +131,21 @@ class AuthorizedDatasetQueryCompilerTest extends TestCase
         );
     }
 
-    private function activeRegistry(): DatasetRegistry
-    {
-        $draft = (new DatasetRegistry)
+    private function transactionRegistry(
+        DatasetStatus $status,
+    ): DatasetRegistry {
+        $definition = (new DatasetRegistry)
             ->get(DatasetKey::TRANSACTIONS);
 
         return new DatasetRegistry([
             new DatasetDefinition(
-                key: $draft->key,
-                label: $draft->label,
-                description: $draft->description,
-                grain: $draft->grain,
-                status: DatasetStatus::ACTIVE,
-                dimensions: $draft->dimensions(),
-                measures: $draft->measures(),
+                key: $definition->key,
+                label: $definition->label,
+                description: $definition->description,
+                grain: $definition->grain,
+                status: $status,
+                dimensions: $definition->dimensions(),
+                measures: $definition->measures(),
             ),
         ]);
     }

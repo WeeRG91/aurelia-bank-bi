@@ -47,10 +47,6 @@ class DatasetRegistryTest extends TestCase
             $this->assertNotSame('', trim($definition->label));
             $this->assertNotSame('', trim($definition->description));
             $this->assertNotSame('', trim($definition->grain));
-            $this->assertSame(
-                DatasetStatus::DRAFT,
-                $definition->status,
-            );
         }
     }
 
@@ -81,12 +77,36 @@ class DatasetRegistryTest extends TestCase
         $registry->get('arbitrary_database_table');
     }
 
-    public function test_no_dataset_is_active_before_query_support_exists(): void
+    public function test_query_supported_datasets_are_active(): void
     {
         $this->assertSame(
-            [],
-            (new DatasetRegistry)->active(),
+            [
+                'account_balances',
+                'transactions',
+            ],
+            array_map(
+                fn (DatasetDefinition $definition): string => $definition->key->value,
+                (new DatasetRegistry)->active(),
+            ),
         );
+    }
+
+    public function test_unsupported_datasets_remain_draft(): void
+    {
+        $registry = new DatasetRegistry;
+
+        foreach ([
+            DatasetKey::CUSTOMER_OVERVIEW,
+            DatasetKey::CARD_ACTIVITY,
+            DatasetKey::LOANS,
+            DatasetKey::LOAN_REPAYMENTS,
+            DatasetKey::BRANCH_PERFORMANCE,
+        ] as $datasetKey) {
+            $this->assertSame(
+                DatasetStatus::DRAFT,
+                $registry->get($datasetKey)->status,
+            );
+        }
     }
 
     public function test_dataset_definitions_are_final_and_immutable(): void
