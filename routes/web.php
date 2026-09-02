@@ -3,6 +3,7 @@
 use App\Http\Controllers\Analytics\DatasetCatalogController;
 use App\Http\Controllers\Analytics\ReportBuilderController;
 use App\Http\Controllers\Analytics\ReportPreviewController;
+use App\Http\Controllers\Analytics\SavedReportController;
 use App\Http\Controllers\Analytics\SavedReportStoreController;
 use App\Http\Controllers\Auth\AuthenticatedSessionController;
 use App\Http\Controllers\BranchController;
@@ -47,6 +48,8 @@ Route::middleware(['auth', 'active.employee'])->group(function (): void {
             Route::post('/report-preview', ReportPreviewController::class)
                 ->name('report-preview');
 
+            Route::get('/saved-reports', [SavedReportController::class, 'index'])
+                ->name('saved-reports.index');
             Route::post('/saved-reports', SavedReportStoreController::class)
                 ->name('saved-reports.store');
 

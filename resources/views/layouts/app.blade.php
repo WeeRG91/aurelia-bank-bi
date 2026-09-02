@@ -25,13 +25,6 @@
                     Branches
                 </a>
 
-                <a
-                    href="{{ route('profile') }}"
-                    class="text-sm font-medium text-slate-700 hover:text-amber-700"
-                >
-                    My profile
-                </a>
-
                 @can('viewAny', \App\Models\Employee::class)
                     <a
                         href="{{ route('employees.index') }}"
@@ -53,6 +46,22 @@
                     class="text-sm font-medium text-slate-700 hover:text-amber-700"
                 >
                     Report Builder
+                </a>
+
+                @can('viewAny', \App\Models\SavedReport::class)
+                    <a
+                        href="{{ route('analytics.saved-reports.index') }}"
+                        class="text-sm font-medium text-slate-700 hover:text-amber-700"
+                    >
+                        My Reports
+                    </a>
+                @endcan
+
+                <a
+                    href="{{ route('profile') }}"
+                    class="text-sm font-medium text-slate-700 hover:text-amber-700"
+                >
+                    My profile
                 </a>
             </nav>
 
