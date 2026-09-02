@@ -6,9 +6,12 @@ import type {
     DimensionDefinition,
     FilterOperator,
     MeasureDefinition,
+    RelativeDatePreset,
+    RelativeDateSelection,
     ReportBuilderBootstrap,
     ReportFilterDraft,
     ReportFilterPayload,
+    ReportPreviewPayload,
     ReportPreviewResponse,
     ValidationErrorResponse,
 } from './types';
@@ -31,6 +34,18 @@ const FILTER_OPERATOR_LABELS: Record<FilterOperator, string> = {
     is_not_null: 'Is not empty',
 };
 
+const RELATIVE_DATE_PRESET_LABELS: Record<RelativeDatePreset, string> = {
+    today: 'Today',
+    yesterday: 'Yesterday',
+    last_7_days: 'Last 7 days',
+    last_30_days: 'Last 30 days',
+    month_to_date: 'Month to date',
+    previous_month: 'Previous month',
+    quarter_to_date: 'Quarter to date',
+    previous_quarter: 'Previous quarter',
+    year_to_date: 'Year to date',
+};
+
 const props = defineProps<{
     bootstrap: ReportBuilderBootstrap;
 }>();
@@ -40,6 +55,9 @@ const selectedDatasetKey = ref(props.bootstrap.datasets[0]?.key ?? '');
 const selectedDimensionKeys = ref<string[]>([]);
 const selectedMeasureKeys = ref<string[]>([]);
 const selectedFilters = ref<ReportFilterDraft[]>([]);
+const selectedRelativeDateDimension = ref<string>('');
+const selectedRelativeDatePreset = ref<RelativeDatePreset | ''>('');
+
 let nextFilterId = 1;
 
 const isPreviewLoading = ref<boolean>(false);
@@ -56,6 +74,17 @@ const previewColumns = computed<string[]>(() => {
 
 const selectedDataset = computed<DatasetSummary | undefined>(() =>
     props.bootstrap.datasets.find((dataset) => dataset.key === selectedDatasetKey.value),
+);
+
+const relativeDateDimensions = computed<DimensionDefinition[]>(
+    () =>
+        selectedDataset.value?.dimensions.filter(
+            (dimension) => dimension.dataType === 'date' || dimension.dataType === 'datetime',
+        ) ?? [],
+);
+
+const explicitlyFilteredDimensionKeys = computed<Set<string>>(
+    () => new Set(selectedFilters.value.map((filter) => filter.dimension)),
 );
 
 const requiredDimensionKeys = computed<Set<string>>(() => {
@@ -80,7 +109,9 @@ function dimensionForFilter(filter: ReportFilterDraft): DimensionDefinition | un
 }
 
 function addFilter(): void {
-    const dimension = selectedDataset.value?.dimensions[0];
+    const dimension = selectedDataset.value?.dimensions.find(
+        (candidate) => candidate.key !== selectedRelativeDateDimension.value,
+    );
     const operator = dimension?.allowedOperators[0];
 
     if (
@@ -222,6 +253,29 @@ function toFilterPayload(filter: ReportFilterDraft): ReportFilterPayload {
     };
 }
 
+function changeRelativeDateDimension(): void {
+    if (selectedRelativeDateDimension.value === '') {
+        selectedRelativeDatePreset.value = '';
+        clearPreview();
+
+        return;
+    }
+
+    if (selectedRelativeDatePreset.value === '') {
+        selectedRelativeDatePreset.value = props.bootstrap.relativeDatePresets.includes(
+            'last_30_days',
+        )
+            ? 'last_30_days'
+            : (props.bootstrap.relativeDatePresets[0] ?? '');
+    }
+
+    clearPreview();
+}
+
+function changeRelativeDatePreset(): void {
+    clearPreview();
+}
+
 async function previewReport(): Promise<void> {
     if (selectedDataset.value === undefined) {
         return;
@@ -232,12 +286,27 @@ async function previewReport(): Promise<void> {
     preview.value = null;
 
     try {
-        const response = await axios.post<ReportPreviewResponse>(props.bootstrap.previewUrl, {
+        const relativeDateSelection: RelativeDateSelection | null =
+            selectedRelativeDateDimension.value !== '' && selectedRelativeDatePreset.value !== ''
+                ? {
+                      dimension: selectedRelativeDateDimension.value,
+                      preset: selectedRelativeDatePreset.value,
+                  }
+                : null;
+
+        const payload: ReportPreviewPayload = {
             dataset: selectedDataset.value.key,
             dimensions: selectedDimensionKeys.value,
             measures: selectedMeasureKeys.value,
+            filters: selectedFilters.value.map(toFilterPayload),
+            relative_date: relativeDateSelection,
             limit: 100,
-        });
+        };
+
+        const response = await axios.post<ReportPreviewResponse>(
+            props.bootstrap.previewUrl,
+            payload,
+        );
 
         preview.value = response.data;
     } catch (error: unknown) {
@@ -282,6 +351,8 @@ function selectDataset(datasetKey: string): void {
     selectedDimensionKeys.value = [];
     selectedMeasureKeys.value = [];
     selectedFilters.value = [];
+    selectedRelativeDateDimension.value = '';
+    selectedRelativeDatePreset.value = '';
     clearPreview();
 }
 
@@ -504,6 +575,68 @@ function toggleMeasure(measure: MeasureDefinition): void {
             </div>
 
             <section class="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+                <div>
+                    <h3 class="font-semibold text-slate-950">Relative date</h3>
+
+                    <p class="mt-1 text-sm text-slate-500">
+                        Resolve a calendar period when the report runs using
+                        {{ bootstrap.reportingTimezone }}.
+                    </p>
+                </div>
+
+                <div
+                    v-if="relativeDateDimensions.length > 0"
+                    class="mt-5 grid gap-4 md:grid-cols-2"
+                >
+                    <label class="block">
+                        <span class="text-xs font-semibold text-slate-600"> Date dimension </span>
+
+                        <select
+                            v-model="selectedRelativeDateDimension"
+                            class="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm"
+                            @change="changeRelativeDateDimension"
+                        >
+                            <option value="">No relative date</option>
+
+                            <option
+                                v-for="dimension in relativeDateDimensions"
+                                :key="dimension.key"
+                                :value="dimension.key"
+                                :disabled="explicitlyFilteredDimensionKeys.has(dimension.key)"
+                            >
+                                {{ dimension.label }}
+                            </option>
+                        </select>
+                    </label>
+
+                    <label class="block">
+                        <span class="text-xs font-semibold text-slate-600"> Period </span>
+
+                        <select
+                            v-model="selectedRelativeDatePreset"
+                            class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm disabled:bg-slate-100"
+                            :disabled="selectedRelativeDateDimension === ''"
+                            @change="changeRelativeDatePreset"
+                        >
+                            <option value="" disabled>Select a period</option>
+
+                            <option
+                                v-for="preset in bootstrap.relativeDatePresets"
+                                :key="preset"
+                                :value="preset"
+                            >
+                                {{ RELATIVE_DATE_PRESET_LABELS[preset] }}
+                            </option>
+                        </select>
+                    </label>
+                </div>
+
+                <p v-else class="mt-5 rounded-lg bg-slate-50 p-4 text-sm text-slate-500">
+                    This dataset has no date dimensions.
+                </p>
+            </section>
+
+            <section class="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
                 <div class="flex items-center justify-between gap-4">
                     <div>
                         <h3 class="font-semibold text-slate-950">Filters</h3>
@@ -551,6 +684,7 @@ function toggleMeasure(measure: MeasureDefinition): void {
                                         v-for="dimension in selectedDataset.dimensions"
                                         :key="dimension.key"
                                         :value="dimension.key"
+                                        :disabled="dimension.key === selectedRelativeDateDimension"
                                     >
                                         {{ dimension.label }}
                                     </option>
@@ -652,6 +786,13 @@ function toggleMeasure(measure: MeasureDefinition): void {
                     {{ selectedDimensionKeys.length }} dimensions,
                     {{ selectedMeasureKeys.length }} measures and
                     {{ selectedFilters.length }} filters selected.
+                </p>
+
+                <p class="mt-2 text-sm text-slate-600">
+                    <span v-if="selectedRelativeDatePreset !== ''">
+                        Relative period:
+                        {{ RELATIVE_DATE_PRESET_LABELS[selectedRelativeDatePreset] }}.
+                    </span>
                 </p>
 
                 <button

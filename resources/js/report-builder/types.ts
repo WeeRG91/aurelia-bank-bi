@@ -64,7 +64,7 @@ export interface ReportBuilderBootstrap {
     reportingTimezone: string;
     previewUrl: string;
     datasets: DatasetSummary[];
-    relativeDatePreset: RelativeDatePreset[];
+    relativeDatePresets: RelativeDatePreset[];
 }
 
 export interface ReportPreviewPayload {
