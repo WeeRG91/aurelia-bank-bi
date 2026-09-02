@@ -13,6 +13,7 @@ use App\Analytics\Queries\Compilation\FilterCompiler;
 use App\Analytics\Queries\DatasetQuery;
 use App\Analytics\Queries\DatasetQueryCompiler;
 use App\Analytics\Queries\Sources\TransactionDatasetSource;
+use App\Analytics\Time\ReportingTimezone;
 use InvalidArgumentException;
 use PHPUnit\Framework\TestCase;
 
@@ -233,5 +234,41 @@ class DatasetQueryCompilerTest extends TestCase
             'UTC',
             $query->reportingTimezone->name,
         );
+    }
+
+    public function test_transaction_measure_can_be_grouped_by_local_booking_month(): void
+    {
+        $query = new DatasetQuery(
+            dataset: DatasetKey::TRANSACTIONS,
+            dimensions: [
+                'booking_month',
+                'currency',
+            ],
+            measures: ['total_amount'],
+            reportingTimezone: new ReportingTimezone(
+                'Europe/Luxembourg',
+            ),
+        );
+
+        $compiled = $this->compiler()->compile(
+            new TransactionDatasetSource,
+            $query,
+            DatasetRowScope::unrestricted(),
+        );
+
+        $monthExpression =
+            "CAST(date_trunc('month', timezone('Europe/Luxembourg', transactions.booked_at)) AS date)";
+
+        $this->assertStringContainsString(
+            "{$monthExpression} AS booking_month",
+            $compiled->sql,
+        );
+
+        $this->assertStringContainsString(
+            "GROUP BY {$monthExpression}, transactions.currency",
+            $compiled->sql,
+        );
+
+        $this->assertSame([100], $compiled->bindings);
     }
 }

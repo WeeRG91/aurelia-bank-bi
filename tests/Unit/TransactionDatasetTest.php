@@ -31,6 +31,10 @@ class TransactionDatasetTest extends TestCase
                 'direction',
                 'status',
                 'booked_at',
+                'booking_date',
+                'booking_month',
+                'booking_quarter',
+                'booking_year',
                 'value_date',
             ],
             array_map(
@@ -159,5 +163,32 @@ class TransactionDatasetTest extends TestCase
         $this->assertNull($dataset->findDimension('id'));
         $this->assertNull($dataset->findDimension('account_id'));
         $this->assertNull($dataset->findDimension('customer_segment'));
+    }
+
+    public function test_booking_calendar_dimensions_are_temporal_dates(): void
+    {
+        $dataset = (new DatasetRegistry)
+            ->get(DatasetKey::TRANSACTIONS);
+
+        foreach ([
+            'booking_date',
+            'booking_month',
+            'booking_quarter',
+            'booking_year',
+        ] as $dimensionKey) {
+            $dimension = $dataset->dimension($dimensionKey);
+
+            $this->assertSame(
+                FieldDataType::DATE,
+                $dimension->dataType,
+            );
+
+            $this->assertSame(
+                DimensionKind::TEMPORAL,
+                $dimension->kind,
+            );
+
+            $this->assertTrue($dimension->nullable);
+        }
     }
 }

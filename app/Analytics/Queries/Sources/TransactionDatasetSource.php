@@ -108,6 +108,22 @@ final class TransactionDatasetSource implements DatasetSource
             'booked_at' => new DimensionSource(
                 column: 'transactions.booked_at',
             ),
+            'booking_date' => new DimensionSource(
+                column: 'transactions.booked_at',
+                kind: DimensionSourceKind::LOCAL_DATE,
+            ),
+            'booking_month' => new DimensionSource(
+                column: 'transactions.booked_at',
+                kind: DimensionSourceKind::LOCAL_MONTH,
+            ),
+            'booking_quarter' => new DimensionSource(
+                column: 'transactions.booked_at',
+                kind: DimensionSourceKind::LOCAL_QUARTER,
+            ),
+            'booking_year' => new DimensionSource(
+                column: 'transactions.booked_at',
+                kind: DimensionSourceKind::LOCAL_YEAR,
+            ),
             'value_date' => new DimensionSource(
                 column: 'transactions.value_date',
             ),
