@@ -5,13 +5,19 @@ namespace App\Analytics\Queries\Compilation;
 use App\Analytics\Filters\FilterCondition;
 use App\Analytics\Filters\FilterOperator;
 use App\Analytics\Queries\Sources\DatasetSource;
+use App\Analytics\Time\ReportingTimezone;
 use LogicException;
 
 final class FilterCompiler
 {
+    public function __construct(
+        private DimensionSourceCompiler $dimensionSourceCompiler = new DimensionSourceCompiler,
+    ) {}
+
     public function compile(
         DatasetSource $source,
         FilterCondition $condition,
+        ReportingTimezone $reportingTimezone = new ReportingTimezone('UTC'),
     ): CompiledFilter {
         if ($source->dataset() !== $condition->dataset) {
             throw new LogicException(
@@ -19,7 +25,10 @@ final class FilterCompiler
             );
         }
 
-        $column = $source->column($condition->dimension);
+        $column = $this->dimensionSourceCompiler->compile(
+            $source->dimensionSource($condition->dimension),
+            $reportingTimezone,
+        );
 
         return match ($condition->operator) {
             FilterOperator::EQUALS => $this->compileScalar(

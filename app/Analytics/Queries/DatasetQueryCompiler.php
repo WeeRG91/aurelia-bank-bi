@@ -9,6 +9,7 @@ use App\Analytics\Filters\FilterOperator;
 use App\Analytics\Queries\Authorization\DatasetRowScope;
 use App\Analytics\Queries\Authorization\RowScopeType;
 use App\Analytics\Queries\Compilation\CompiledFilter;
+use App\Analytics\Queries\Compilation\DimensionSourceCompiler;
 use App\Analytics\Queries\Compilation\FilterCompiler;
 use App\Analytics\Queries\Sources\DatasetSource;
 use App\Analytics\Queries\Sources\MeasureSource;
@@ -21,6 +22,7 @@ final readonly class DatasetQueryCompiler
     public function __construct(
         private FilterCompiler $filterCompiler,
         private DatasetRegistry $registry,
+        private DimensionSourceCompiler $dimensionSourceCompiler = new DimensionSourceCompiler,
     ) {}
 
     public function compile(
@@ -39,7 +41,7 @@ final readonly class DatasetQueryCompiler
         $select = array_map(
             fn (string $dimension): string => sprintf(
                 '%s AS %s',
-                $source->column($dimension),
+                $this->compileDimension($source, $query, $dimension),
                 $definition->dimension($dimension)->key,
             ),
             $query->dimensions,
@@ -95,6 +97,7 @@ final readonly class DatasetQueryCompiler
             $compiled = $this->filterCompiler->compile(
                 $source,
                 $filter,
+                $query->reportingTimezone,
             );
 
             $where[] = $compiled->sql;
@@ -114,7 +117,9 @@ final readonly class DatasetQueryCompiler
             && $query->dimensions !== []
         ) {
             $groupBy = array_map(
-                fn (string $dimension): string => $source->column(
+                fn (string $dimension): string => $this->compileDimension(
+                    $source,
+                    $query,
                     $dimension,
                 ),
                 $query->dimensions,
@@ -272,5 +277,16 @@ final readonly class DatasetQueryCompiler
                 ],
             ),
         };
+    }
+
+    private function compileDimension(
+        DatasetSource $source,
+        DatasetQuery $query,
+        string $dimension,
+    ): string {
+        return $this->dimensionSourceCompiler->compile(
+            $source->dimensionSource($dimension),
+            $query->reportingTimezone,
+        );
     }
 }

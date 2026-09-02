@@ -8,19 +8,6 @@ use App\Analytics\Datasets\UnknownMeasure;
 
 final class AccountBalanceDatasetSource implements DatasetSource
 {
-    /**
-     * @var array<string, string>
-     */
-    private const array COLUMNS = [
-        'account_number' => 'accounts.account_number',
-        'branch' => 'branches.branch_code',
-        'country' => 'branches.country_code',
-        'account_type' => 'accounts.account_type',
-        'currency' => 'accounts.currency',
-        'account_status' => 'accounts.status',
-        'snapshot_date' => 'account_balance_snapshots.snapshot_date',
-    ];
-
     public function dataset(): DatasetKey
     {
         return DatasetKey::ACCOUNT_BALANCES;
@@ -34,20 +21,6 @@ final class AccountBalanceDatasetSource implements DatasetSource
     public function branchScopeColumn(): string
     {
         return 'branches.id';
-    }
-
-    public function columns(): array
-    {
-        return self::COLUMNS;
-    }
-
-    public function column(string $dimension): string
-    {
-        return self::COLUMNS[$dimension]
-            ?? throw UnknownDimension::forDataset(
-                $this->dataset(),
-                $dimension,
-            );
     }
 
     public function measureSources(): array
@@ -94,5 +67,41 @@ final class AccountBalanceDatasetSource implements DatasetSource
                 rightColumn: 'branches.id',
             ),
         ];
+    }
+
+    public function dimensionSources(): array
+    {
+        return [
+            'account_number' => new DimensionSource(
+                column: 'accounts.account_number',
+            ),
+            'branch' => new DimensionSource(
+                column: 'branches.branch_code',
+            ),
+            'country' => new DimensionSource(
+                column: 'branches.country_code',
+            ),
+            'account_type' => new DimensionSource(
+                column: 'accounts.account_type',
+            ),
+            'currency' => new DimensionSource(
+                column: 'accounts.currency',
+            ),
+            'account_status' => new DimensionSource(
+                column: 'accounts.status',
+            ),
+            'snapshot_date' => new DimensionSource(
+                column: 'account_balance_snapshots.snapshot_date',
+            ),
+        ];
+    }
+
+    public function dimensionSource(string $dimension): DimensionSource
+    {
+        return $this->dimensionSources()[$dimension]
+            ?? throw UnknownDimension::forDataset(
+                $this->dataset(),
+                $dimension,
+            );
     }
 }

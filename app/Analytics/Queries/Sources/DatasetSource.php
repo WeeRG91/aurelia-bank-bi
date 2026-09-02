@@ -13,11 +13,11 @@ interface DatasetSource
     public function branchScopeColumn(): string;
 
     /**
-     * @return array<string, string>
+     * @return array<string, DimensionSource>
      */
-    public function columns(): array;
+    public function dimensionSources(): array;
 
-    public function column(string $dimension): string;
+    public function dimensionSource(string $dimension): DimensionSource;
 
     /**
      * @return array<string, MeasureSource>

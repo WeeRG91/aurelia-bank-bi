@@ -68,7 +68,7 @@ class AccountBalanceMeasureTest extends TestCase
                 fn ($dimension): string => $dimension->key,
                 $dataset->dimensions(),
             ),
-            array_keys($source->columns()),
+            array_keys($source->dimensionSources()),
         );
 
         $this->assertSame(

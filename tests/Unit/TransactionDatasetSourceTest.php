@@ -47,16 +47,18 @@ class TransactionDatasetSourceTest extends TestCase
 
         $this->assertSame(
             $dimensionKeys,
-            array_keys((new TransactionDatasetSource)->columns()),
+            array_keys((new TransactionDatasetSource)->dimensionSources()),
         );
     }
 
     public function test_physical_columns_are_safe_qualified_identifiers(): void
     {
-        foreach ((new TransactionDatasetSource)->columns() as $column) {
+        foreach (
+            (new TransactionDatasetSource)->dimensionSources() as $source
+        ) {
             $this->assertMatchesRegularExpression(
                 '/^[a-z][a-z0-9_]*\.[a-z][a-z0-9_]*$/',
-                $column,
+                $source->column,
             );
         }
     }
@@ -67,17 +69,17 @@ class TransactionDatasetSourceTest extends TestCase
 
         $this->assertSame(
             'branches.branch_code',
-            $source->column('branch'),
+            $source->dimensionSource('branch')->column,
         );
 
         $this->assertSame(
             'branches.country_code',
-            $source->column('country'),
+            $source->dimensionSource('country')->column,
         );
 
         $this->assertSame(
             'accounts.account_type',
-            $source->column('account_type'),
+            $source->dimensionSource('account_type')->column,
         );
     }
 
@@ -116,7 +118,7 @@ class TransactionDatasetSourceTest extends TestCase
             'Unknown dimension [password] for dataset [transactions].',
         );
 
-        (new TransactionDatasetSource)->column('password');
+        (new TransactionDatasetSource)->dimensionSource('password');
     }
 
     public function test_every_semantic_measure_has_one_physical_mapping(): void
