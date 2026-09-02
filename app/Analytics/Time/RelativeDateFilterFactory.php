@@ -32,6 +32,29 @@ final readonly class RelativeDateFilterFactory
         DateTimeImmutable $now,
         DateTimeZone $reportingTimeZone,
     ): array {
+        $range = $this->rangeResolver->resolve(
+            $preset,
+            $now,
+            $reportingTimeZone,
+        );
+
+        return $this->createForRange(
+            $datasetIdentifier,
+            $dimensionKey,
+            $range,
+            $reportingTimeZone,
+        );
+    }
+
+    /**
+     * @return list<FilterCondition>
+     */
+    public function createForRange(
+        DatasetKey|string $datasetIdentifier,
+        string $dimensionKey,
+        DateRange $range,
+        DateTimeZone $reportingTimeZone,
+    ): array {
         $dataset = $this->registry->get($datasetIdentifier);
         $dimension = $dataset->dimension($dimensionKey);
 
@@ -49,8 +72,6 @@ final readonly class RelativeDateFilterFactory
                 "Relative date filter requires a date or datetime dimension; [{$dimensionKey}] is not temporal.",
             );
         }
-
-        $range = $this->rangeResolver->resolve($preset, $now, $reportingTimeZone);
 
         if ($dimension->dataType === FieldDataType::DATE) {
             if ($range->startDate === $range->endDate) {

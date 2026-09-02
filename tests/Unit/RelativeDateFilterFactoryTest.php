@@ -9,6 +9,7 @@ use App\Analytics\Filters\FilterOperator;
 use App\Analytics\Filters\FilterValidator;
 use App\Analytics\Queries\Compilation\FilterCompiler;
 use App\Analytics\Queries\Sources\TransactionDatasetSource;
+use App\Analytics\Time\DateRange;
 use App\Analytics\Time\RelativeDateFilterFactory;
 use App\Analytics\Time\RelativeDatePreset;
 use App\Analytics\Time\RelativeDateRangeResolver;
@@ -131,6 +132,62 @@ class RelativeDateFilterFactoryTest extends TestCase
             RelativeDatePreset::TODAY,
             $this->now(),
             $this->timezone(),
+        );
+    }
+
+    public function test_explicit_date_range_creates_inclusive_date_filter(): void
+    {
+        $filters = $this->factory()->createForRange(
+            DatasetKey::ACCOUNT_BALANCES,
+            'snapshot_date',
+            new DateRange(
+                startDate: '2026-08-01',
+                endDate: '2026-08-31',
+            ),
+            $this->timezone(),
+        );
+
+        $this->assertCount(1, $filters);
+        $this->assertSame(
+            FilterOperator::BETWEEN,
+            $filters[0]->operator,
+        );
+        $this->assertSame(
+            ['2026-08-01', '2026-08-31'],
+            $filters[0]->value,
+        );
+    }
+
+    public function test_explicit_datetime_range_creates_half_open_utc_filters(): void
+    {
+        $filters = $this->factory()->createForRange(
+            DatasetKey::TRANSACTIONS,
+            'booked_at',
+            new DateRange(
+                startDate: '2026-03-29',
+                endDate: '2026-03-29',
+            ),
+            $this->timezone(),
+        );
+
+        $this->assertCount(2, $filters);
+
+        $this->assertSame(
+            FilterOperator::ON_OR_AFTER,
+            $filters[0]->operator,
+        );
+        $this->assertSame(
+            '2026-03-28T23:00:00+00:00',
+            $filters[0]->value,
+        );
+
+        $this->assertSame(
+            FilterOperator::BEFORE,
+            $filters[1]->operator,
+        );
+        $this->assertSame(
+            '2026-03-29T22:00:00+00:00',
+            $filters[1]->value,
         );
     }
 
