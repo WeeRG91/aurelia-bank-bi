@@ -120,3 +120,21 @@ export interface RelativeDateSelection {
     dimension: string;
     preset: RelativeDatePreset;
 }
+
+export interface StoreSavedReportPayload extends ReportPreviewPayload {
+    name: string;
+    description: string | null;
+}
+
+export interface StoreSavedReportResponse {
+    data: {
+        id: number;
+        name: string;
+        description: string | null;
+        dataset: string;
+        definitionVersion: number;
+        definition: Omit<ReportPreviewPayload, 'dataset'>;
+        createdAt: string | null;
+        updatedAt: string | null;
+    };
+}

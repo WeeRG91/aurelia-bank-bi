@@ -13,6 +13,8 @@ import type {
     ReportFilterPayload,
     ReportPreviewPayload,
     ReportPreviewResponse,
+    StoreSavedReportPayload,
+    StoreSavedReportResponse,
     ValidationErrorResponse,
 } from './types';
 import { axios } from '../bootstrap';
@@ -64,6 +66,12 @@ const isPreviewLoading = ref<boolean>(false);
 const preview = ref<ReportPreviewResponse | null>(null);
 const previewError = ref<string | null>(null);
 
+const reportName = ref<string>('');
+const reportDescription = ref<string>('');
+const isSaveLoading = ref<boolean>(false);
+const saveError = ref<string | null>(null);
+const savedReport = ref<StoreSavedReportResponse['data'] | null>(null);
+
 const previewColumns = computed<string[]>(() => {
     if (preview.value === null) {
         return [];
@@ -100,6 +108,13 @@ const requiredDimensionKeys = computed<Set<string>>(() => {
 function clearPreview(): void {
     preview.value = null;
     previewError.value = null;
+    saveError.value = null;
+    savedReport.value = null;
+}
+
+function clearSaveFeedback(): void {
+    saveError.value = null;
+    savedReport.value = null;
 }
 
 function dimensionForFilter(filter: ReportFilterDraft): DimensionDefinition | undefined {
@@ -276,6 +291,29 @@ function changeRelativeDatePreset(): void {
     clearPreview();
 }
 
+function buildReportPayload(): ReportPreviewPayload | null {
+    if (selectedDataset.value === undefined) {
+        return null;
+    }
+
+    const relativeDateSelection: RelativeDateSelection | null =
+        selectedRelativeDateDimension.value !== '' && selectedRelativeDatePreset.value !== ''
+            ? {
+                  dimension: selectedRelativeDateDimension.value,
+                  preset: selectedRelativeDatePreset.value,
+              }
+            : null;
+
+    return {
+        dataset: selectedDataset.value.key,
+        dimensions: selectedDimensionKeys.value,
+        measures: selectedMeasureKeys.value,
+        filters: selectedFilters.value.map(toFilterPayload),
+        relative_date: relativeDateSelection,
+        limit: 100,
+    };
+}
+
 async function previewReport(): Promise<void> {
     if (selectedDataset.value === undefined) {
         return;
@@ -286,22 +324,11 @@ async function previewReport(): Promise<void> {
     preview.value = null;
 
     try {
-        const relativeDateSelection: RelativeDateSelection | null =
-            selectedRelativeDateDimension.value !== '' && selectedRelativeDatePreset.value !== ''
-                ? {
-                      dimension: selectedRelativeDateDimension.value,
-                      preset: selectedRelativeDatePreset.value,
-                  }
-                : null;
+        const payload = buildReportPayload();
 
-        const payload: ReportPreviewPayload = {
-            dataset: selectedDataset.value.key,
-            dimensions: selectedDimensionKeys.value,
-            measures: selectedMeasureKeys.value,
-            filters: selectedFilters.value.map(toFilterPayload),
-            relative_date: relativeDateSelection,
-            limit: 100,
-        };
+        if (payload === null) {
+            return;
+        }
 
         const response = await axios.post<ReportPreviewResponse>(
             props.bootstrap.previewUrl,
@@ -327,6 +354,56 @@ async function previewReport(): Promise<void> {
         }
     } finally {
         isPreviewLoading.value = false;
+    }
+}
+
+async function saveReport(): Promise<void> {
+    const reportDefinition = buildReportPayload();
+    const name = reportName.value.trim();
+
+    if (reportDefinition === null || name === '') {
+        return;
+    }
+
+    isSaveLoading.value = true;
+    saveError.value = null;
+    savedReport.value = null;
+
+    const description = reportDescription.value.trim();
+
+    const payload: StoreSavedReportPayload = {
+        name,
+        description: description === '' ? null : description,
+        ...reportDefinition,
+    };
+
+    try {
+        const response = await axios.post<StoreSavedReportResponse>(
+            props.bootstrap.saveReportUrl,
+            payload,
+        );
+
+        savedReport.value = response.data.data;
+        reportName.value = response.data.data.name;
+        reportDescription.value = response.data.data.description ?? '';
+    } catch (error: unknown) {
+        if (axios.isAxiosError<ValidationErrorResponse>(error)) {
+            const validationErrors = error.response?.data.errors;
+
+            const firstValidationError =
+                validationErrors === undefined
+                    ? undefined
+                    : Object.values(validationErrors).flat()[0];
+
+            saveError.value =
+                firstValidationError ??
+                error.response?.data.message ??
+                'The report could not be saved.';
+        } else {
+            saveError.value = 'An unexpected error occurred while saving the report.';
+        }
+    } finally {
+        isSaveLoading.value = false;
     }
 }
 
@@ -788,24 +865,80 @@ function toggleMeasure(measure: MeasureDefinition): void {
                     {{ selectedFilters.length }} filters selected.
                 </p>
 
-                <p class="mt-2 text-sm text-slate-600">
-                    <span v-if="selectedRelativeDatePreset !== ''">
-                        Relative period:
-                        {{ RELATIVE_DATE_PRESET_LABELS[selectedRelativeDatePreset] }}.
-                    </span>
+                <p v-if="selectedRelativeDatePreset !== ''" class="mt-2 text-sm text-slate-600">
+                    Relative period:
+                    {{ RELATIVE_DATE_PRESET_LABELS[selectedRelativeDatePreset] }}.
                 </p>
 
-                <button
-                    type="button"
-                    class="mt-4 rounded-lg bg-slate-900 px-4 py-2 text-sm font-medium text-white disabled:cursor-not-allowed disabled:opacity-40"
-                    :disabled="
-                        isPreviewLoading ||
-                        (selectedDimensionKeys.length === 0 && selectedMeasureKeys.length === 0)
-                    "
-                    @click="previewReport"
+                <div class="mt-5 grid gap-4 lg:grid-cols-2">
+                    <label class="grid gap-2 text-sm font-medium text-slate-700">
+                        Report name
+
+                        <input
+                            v-model="reportName"
+                            type="text"
+                            maxlength="150"
+                            placeholder="Monthly EUR movements"
+                            class="rounded-lg border border-slate-300 px-3 py-2 font-normal"
+                            @input="clearSaveFeedback"
+                        />
+                    </label>
+
+                    <label class="grid gap-2 text-sm font-medium text-slate-700">
+                        Description
+
+                        <input
+                            v-model="reportDescription"
+                            type="text"
+                            maxlength="2000"
+                            placeholder="Optional report description"
+                            class="rounded-lg border border-slate-300 px-3 py-2 font-normal"
+                            @input="clearSaveFeedback"
+                        />
+                    </label>
+                </div>
+
+                <div class="mt-5 flex flex-wrap gap-3">
+                    <button
+                        type="button"
+                        class="rounded-lg bg-slate-900 px-4 py-2 text-sm font-medium text-white disabled:cursor-not-allowed disabled:opacity-40"
+                        :disabled="
+                            isPreviewLoading ||
+                            (selectedDimensionKeys.length === 0 && selectedMeasureKeys.length === 0)
+                        "
+                        @click="previewReport"
+                    >
+                        {{ isPreviewLoading ? 'Generating preview…' : 'Preview report' }}
+                    </button>
+
+                    <button
+                        type="button"
+                        class="rounded-lg bg-blue-700 px-4 py-2 text-sm font-medium text-white disabled:cursor-not-allowed disabled:opacity-40"
+                        :disabled="
+                            isSaveLoading ||
+                            reportName.trim() === '' ||
+                            (selectedDimensionKeys.length === 0 && selectedMeasureKeys.length === 0)
+                        "
+                        @click="saveReport"
+                    >
+                        {{ isSaveLoading ? 'Saving report…' : 'Save report' }}
+                    </button>
+                </div>
+
+                <p
+                    v-if="saveError !== null"
+                    class="mt-4 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-800"
                 >
-                    {{ isPreviewLoading ? 'Generating preview…' : 'Preview report' }}
-                </button>
+                    {{ saveError }}
+                </p>
+
+                <p
+                    v-if="savedReport !== null"
+                    class="mt-4 rounded-lg border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-800"
+                >
+                    “{{ savedReport.name }}” was saved successfully as version
+                    {{ savedReport.definitionVersion }}.
+                </p>
             </footer>
 
             <section
