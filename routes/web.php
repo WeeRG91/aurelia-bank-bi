@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Analytics\DatasetCatalogController;
+use App\Http\Controllers\Analytics\ReportBuilderController;
 use App\Http\Controllers\Auth\AuthenticatedSessionController;
 use App\Http\Controllers\BranchController;
 use App\Http\Controllers\DashboardController;
@@ -39,6 +40,8 @@ Route::middleware(['auth', 'active.employee'])->group(function (): void {
     Route::prefix('analytics')
         ->name('analytics.')
         ->group(function (): void {
+            Route::get('/report-builder', ReportBuilderController::class)
+                ->name('report-builder');
             Route::get('/datasets', [DatasetCatalogController::class, 'index'])
                 ->name('datasets.index');
             Route::get('/datasets/{dataset}', [DatasetCatalogController::class, 'show'])

@@ -46,6 +46,13 @@
                 >
                     Datasets
                 </a>
+
+                <a
+                    href="{{ route('analytics.report-builder') }}"
+                    class="text-sm font-medium text-slate-700 hover:text-amber-700"
+                >
+                    Report Builder
+                </a>
             </nav>
 
             <div class="flex items-center gap-4">
