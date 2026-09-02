@@ -65,6 +65,7 @@ export interface ReportBuilderBootstrap {
     previewUrl: string;
     datasets: DatasetSummary[];
     relativeDatePresets: RelativeDatePreset[];
+    saveReportUrl: string;
 }
 
 export interface ReportPreviewPayload {

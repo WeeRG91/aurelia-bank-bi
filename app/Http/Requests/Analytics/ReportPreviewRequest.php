@@ -22,7 +22,7 @@ use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\Validator;
 
-final class ReportPreviewRequest extends FormRequest
+class ReportPreviewRequest extends FormRequest
 {
     /**
      * Determine if the user is authorized to make this request.
@@ -364,5 +364,56 @@ final class ReportPreviewRequest extends FormRequest
             limit: $validated['limit'] ?? 100,
             reportingTimezone: $reportingTimezone,
         );
+    }
+
+    /**
+     * @return array{
+     *     dimensions: list<string>,
+     *     measures: list<string>,
+     *     filters: list<array{
+     *         dimension: string,
+     *         operator: string,
+     *         value: mixed
+     *     }>,
+     *     relative_date: array{
+     *         dimension: string,
+     *         preset: string
+     *     }|null,
+     *     limit: int
+     * }
+     */
+    public function toStoredDefinition(): array
+    {
+        $validated = $this->validated();
+        $dataset = DatasetKey::from($validated['dataset']);
+        $filterValidator = app(FilterValidator::class);
+
+        $filters = array_map(
+            function (array $filter) use (
+                $dataset, $filterValidator
+            ): array {
+                $condition = $filterValidator->validate(
+                    $dataset,
+                    $filter['dimension'],
+                    $filter['operator'],
+                    $filter['value'],
+                );
+
+                return [
+                    'dimension' => $condition->dimension,
+                    'operator' => $condition->operator->value,
+                    'value' => $condition->value,
+                ];
+            },
+            $validated['filters'] ?? [],
+        );
+
+        return [
+            'dimensions' => $validated['dimensions'],
+            'measures' => $validated['measures'],
+            'filters' => $filters,
+            'relative_date' => $validated['relative_date'] ?? null,
+            'limit' => $validated['limit'] ?? 100,
+        ];
     }
 }

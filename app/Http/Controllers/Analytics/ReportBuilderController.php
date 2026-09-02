@@ -80,6 +80,7 @@ final class ReportBuilderController extends Controller
                 static fn (RelativeDatePreset $preset): string => $preset->value,
                 RelativeDatePreset::cases(),
             ),
+            'saveReportUrl' => route('analytics.saved-reports.store'),
         ];
 
         return view('analytics.report-builder', [
