@@ -6,7 +6,7 @@
 
     <title>@yield('title', 'Aurelia Bank BI')</title>
 
-    @vite(['resources/css/app.css', 'resources/js/app.js'])
+    @vite(['resources/css/app.css', 'resources/js/app.ts'])
 </head>
 <body class="min-h-screen bg-slate-100 text-slate-900">
 <header class="border-b border-slate-200 bg-white">
