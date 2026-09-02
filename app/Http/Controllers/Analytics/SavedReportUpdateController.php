@@ -4,27 +4,19 @@ namespace App\Http\Controllers\Analytics;
 
 use App\Analytics\Datasets\DatasetKey;
 use App\Http\Controllers\Controller;
-use App\Http\Requests\Analytics\StoreSavedReportRequest;
+use App\Http\Requests\Analytics\UpdateSavedReportRequest;
 use App\Http\Resources\Analytics\SavedReportResource;
-use App\Models\Employee;
 use App\Models\SavedReport;
-use App\Models\User;
-use Illuminate\Http\JsonResponse;
 
-final class SavedReportStoreController extends Controller
+final class SavedReportUpdateController extends Controller
 {
     public function __invoke(
-        StoreSavedReportRequest $request
-    ): JsonResponse {
-        /** @var User $user */
-        $user = $request->user();
-
-        /** @var Employee $employee */
-        $employee = $user->employee;
-
+        UpdateSavedReportRequest $request,
+        SavedReport $savedReport
+    ): SavedReportResource {
         $description = $request->validated('description');
 
-        $report = $employee->savedReports()->create([
+        $savedReport->update([
             'name' => trim(
                 (string) $request->validated('name'),
             ),
@@ -34,13 +26,9 @@ final class SavedReportStoreController extends Controller
             'dataset' => DatasetKey::from(
                 (string) $request->validated('dataset'),
             ),
-            'definition_version' => 1,
             'definition' => $request->toStoredDefinition(),
         ]);
 
-        /** @var SavedReport $report */
-        return (new SavedReportResource($report))
-            ->response()
-            ->setStatusCode(201);
+        return new SavedReportResource($savedReport);
     }
 }

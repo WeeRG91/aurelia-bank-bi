@@ -5,6 +5,7 @@ use App\Http\Controllers\Analytics\ReportBuilderController;
 use App\Http\Controllers\Analytics\ReportPreviewController;
 use App\Http\Controllers\Analytics\SavedReportController;
 use App\Http\Controllers\Analytics\SavedReportStoreController;
+use App\Http\Controllers\Analytics\SavedReportUpdateController;
 use App\Http\Controllers\Auth\AuthenticatedSessionController;
 use App\Http\Controllers\BranchController;
 use App\Http\Controllers\DashboardController;
@@ -52,6 +53,9 @@ Route::middleware(['auth', 'active.employee'])->group(function (): void {
                 ->name('saved-reports.index');
             Route::post('/saved-reports', SavedReportStoreController::class)
                 ->name('saved-reports.store');
+            Route::put('/saved-reports/{savedReport}', SavedReportUpdateController::class)
+                ->whereNumber('savedReport')
+                ->name('saved-reports.update');
 
             Route::get('/datasets', [DatasetCatalogController::class, 'index'])
                 ->name('datasets.index');
