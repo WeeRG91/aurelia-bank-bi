@@ -1,29 +1,10 @@
+export type FieldDataType = 'string' | 'date' | 'datetime' | 'boolean' | 'integer' | 'decimal';
 
-export type FieldDataType =
-    | 'string'
-    | 'date'
-    | 'datetime'
-    | 'boolean'
-    | 'integer'
-    | 'decimal';
+export type DimensionKind = 'identifier' | 'categorical' | 'temporal' | 'geographic';
 
-export type DimensionKind =
-    | 'identifier'
-    | 'categorical'
-    | 'temporal'
-    | 'geographic';
+export type SensitivityLevel = 'internal' | 'confidential' | 'restricted';
 
-export type SensitivityLevel =
-    | 'internal'
-    | 'confidential'
-    | 'restricted';
-
-export type AggregationFunction =
-    | 'count'
-    | 'sum'
-    | 'average'
-    | 'minimum'
-    | 'maximum';
+export type AggregationFunction = 'count' | 'sum' | 'average' | 'minimum' | 'maximum';
 
 export interface DimensionDefinition {
     key: string;
@@ -86,5 +67,5 @@ export interface ReportPreviewResponse {
 
 export interface ValidationErrorResponse {
     message?: string;
-    errors?: Record<string, string[]>
+    errors?: Record<string, string[]>;
 }
