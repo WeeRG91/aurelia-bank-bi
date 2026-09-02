@@ -4,8 +4,9 @@ import { computed, ref } from 'vue';
 import type {
     DatasetSummary,
     MeasureDefinition,
-    ReportBuilderBootstrap,
+    ReportBuilderBootstrap, ReportPreviewResponse, ValidationErrorResponse,
 } from './types';
+import axios from "axios";
 
 const MAX_DIMENSIONS = 20;
 const MAX_MEASURES = 10;
@@ -20,6 +21,21 @@ const selectedDatasetKey = ref(
 
 const selectedDimensionKeys = ref<string[]>([]);
 const selectedMeasureKeys = ref<string[]>([]);
+
+const isPreviewLoading = ref<boolean>(false);
+const preview = ref<ReportPreviewResponse | null>(null);
+const previewError = ref<string | null>(null);
+
+const previewColumns = computed<string[]>(() => {
+    if (preview.value === null) {
+        return [];
+    }
+
+    return [
+        ...preview.value.meta.dimensions,
+        ...preview.value.meta.measures,
+    ];
+})
 
 const selectedDataset = computed<DatasetSummary | undefined>(
     () => props.bootstrap.datasets.find(
@@ -39,10 +55,74 @@ const requiredDimensionKeys = computed<Set<string>>(() => {
     );
 });
 
+function clearPreview(): void {
+    preview.value = null;
+    previewError.value = null;
+}
+
+async function previewReport(): Promise<void> {
+    if (selectedDataset.value === undefined) {
+        return;
+    }
+
+    isPreviewLoading.value = true;
+    previewError.value = null;
+    preview.value = null;
+
+    try {
+        const response = await axios.post<ReportPreviewResponse>(
+            props.bootstrap.previewUrl,
+            {
+                dataset: selectedDataset.value.key,
+                dimensions: selectedDimensionKeys.value,
+                measures: selectedMeasureKeys.value,
+                limit: 100,
+            },
+        );
+
+        preview.value = response.data
+    } catch (error: unknown) {
+        if (axios.isAxiosError<ValidationErrorResponse>(error)) {
+            const validationErrors = error.response?.data.errors;
+
+            const firstValidationError = validationErrors === undefined
+                ? undefined
+                : Object.values(validationErrors).flat()[0];
+
+            previewError.value =
+                firstValidationError
+                ?? error.response?.data.message
+                ?? 'The report preview could not be generated.';
+        } else {
+            previewError.value =
+                'An unexpected error occurred while generating the preview.';
+        }
+    } finally {
+        isPreviewLoading.value = false;
+    }
+}
+
+function formatCellValue(value: unknown): string {
+    if (value === null || value === undefined) {
+        return '—';
+    }
+
+    if (typeof value === 'boolean') {
+        return value ? 'Yes' : 'No';
+    }
+
+    if (typeof value === 'string' || typeof value === 'number') {
+        return String(value);
+    }
+
+    return JSON.stringify(value) ?? '—';
+}
+
 function selectDataset(datasetKey: string): void {
     selectedDatasetKey.value = datasetKey;
     selectedDimensionKeys.value = [];
     selectedMeasureKeys.value = [];
+    clearPreview();
 }
 
 function isDimensionSelected(dimensionKey: string): boolean {
@@ -301,13 +381,87 @@ function toggleMeasure(measure: MeasureDefinition): void {
                     type="button"
                     class="mt-4 rounded-lg bg-slate-900 px-4 py-2 text-sm font-medium text-white disabled:cursor-not-allowed disabled:opacity-40"
                     :disabled="
-                        selectedDimensionKeys.length === 0
-                        && selectedMeasureKeys.length === 0
+                        isPreviewLoading
+                        || (
+                            selectedDimensionKeys.length === 0
+                            && selectedMeasureKeys.length === 0
+                        )
                     "
+                    @click="previewReport"
                 >
-                    Preview report
+                    {{ isPreviewLoading ? 'Generating preview…' : 'Preview report' }}
                 </button>
             </footer>
+
+            <section
+                v-if="previewError !== null"
+                class="rounded-xl border border-red-200 bg-red-50 p-5 text-sm text-red-800"
+            >
+                {{ previewError }}
+            </section>
+
+            <section
+                v-if="preview !== null"
+                class="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm"
+            >
+                <header class="flex flex-wrap items-center justify-between gap-3 border-b border-slate-200 px-5 py-4">
+                    <div>
+                        <h3 class="font-semibold text-slate-950">
+                            Report preview
+                        </h3>
+
+                        <p class="mt-1 text-sm text-slate-500">
+                            {{ preview.meta.rowCount }} rows ·
+                            {{ preview.meta.reportingTimezone }}
+                        </p>
+                    </div>
+
+                    <span class="rounded-full bg-slate-100 px-3 py-1 text-xs font-medium text-slate-600">
+            Limit: {{ preview.meta.limit }}
+        </span>
+                </header>
+
+                <div
+                    v-if="preview.data.length === 0"
+                    class="p-8 text-center text-sm text-slate-500"
+                >
+                    The query completed successfully, but no rows matched.
+                </div>
+
+                <div
+                    v-else
+                    class="overflow-x-auto"
+                >
+                    <table class="min-w-full divide-y divide-slate-200 text-sm">
+                        <thead class="bg-slate-50">
+                        <tr>
+                            <th
+                                v-for="column in previewColumns"
+                                :key="column"
+                                class="whitespace-nowrap px-4 py-3 text-left font-semibold text-slate-700"
+                            >
+                                {{ column }}
+                            </th>
+                        </tr>
+                        </thead>
+
+                        <tbody class="divide-y divide-slate-100">
+                        <tr
+                            v-for="(row, rowIndex) in preview.data"
+                            :key="rowIndex"
+                        >
+                            <td
+                                v-for="column in previewColumns"
+                                :key="column"
+                                class="whitespace-nowrap px-4 py-3 text-slate-700"
+                            >
+                                {{ formatCellValue(row[column]) }}
+                            </td>
+                        </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </section>
         </div>
     </section>
 </template>

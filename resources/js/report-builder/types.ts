@@ -57,5 +57,34 @@ export interface DatasetSummary {
 
 export interface ReportBuilderBootstrap {
     reportingTimezone: string;
+    previewUrl: string;
     datasets: DatasetSummary[];
+}
+
+export interface ReportPreviewPayload {
+    dataset: string;
+    dimensions: string[];
+    measures: string[];
+    limit: number;
+}
+
+export type ReportPreviewRow = Record<string, unknown>;
+
+export interface ReportPreviewMeta {
+    dataset: string;
+    dimensions: string[];
+    measures: string[];
+    rowCount: number;
+    limit: number;
+    reportingTimezone: string;
+}
+
+export interface ReportPreviewResponse {
+    data: ReportPreviewRow[];
+    meta: ReportPreviewMeta;
+}
+
+export interface ValidationErrorResponse {
+    message?: string;
+    errors?: Record<string, string[]>
 }

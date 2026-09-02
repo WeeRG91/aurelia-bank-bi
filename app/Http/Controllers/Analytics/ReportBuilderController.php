@@ -66,6 +66,7 @@ final class ReportBuilderController extends Controller
 
         $bootstrap = [
             'reportingTimezone' => $reportingTimezone->name,
+            'previewUrl' => route('analytics.report-preview'),
             'datasets' => $datasets,
         ];
 
