@@ -178,6 +178,70 @@ class ReportPreviewRequestTest extends TestCase
         $this->assertTrue($validator->passes());
     }
 
+    public function test_valid_relative_date_preset_passes_validation(): void
+    {
+        $validator = $this->validator([
+            'dataset' => 'transactions',
+            'dimensions' => ['currency'],
+            'measures' => [],
+            'relative_date' => [
+                'dimension' => 'booking_date',
+                'preset' => 'last_30_days',
+            ],
+        ]);
+
+        $this->assertTrue($validator->passes());
+    }
+
+    public function test_relative_date_rejects_non_temporal_dimension(): void
+    {
+        $validator = $this->validator([
+            'dataset' => 'transactions',
+            'dimensions' => ['currency'],
+            'measures' => [],
+            'relative_date' => [
+                'dimension' => 'currency',
+                'preset' => 'last_30_days',
+            ],
+        ]);
+
+        $this->assertTrue($validator->fails());
+
+        $this->assertArrayHasKey(
+            'relative_date.dimension',
+            $validator->errors()->toArray(),
+        );
+    }
+
+    public function test_relative_date_conflicts_with_explicit_filter(): void
+    {
+        $validator = $this->validator([
+            'dataset' => 'transactions',
+            'dimensions' => ['currency'],
+            'measures' => [],
+            'filters' => [
+                [
+                    'dimension' => 'booking_date',
+                    'operator' => 'after',
+                    'value' => '2026-08-01',
+                ],
+            ],
+            'relative_date' => [
+                'dimension' => 'booking_date',
+                'preset' => 'last_30_days',
+            ],
+        ]);
+
+        $this->assertTrue($validator->fails());
+
+        $this->assertSame(
+            [
+                'Explicit filter for [booking_date] cannot be combined with a relative date preset on the same dimension.',
+            ],
+            $validator->errors()->get('relative_date.dimension'),
+        );
+    }
+
     /**
      * @param  array<string, mixed>  $payload
      */

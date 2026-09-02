@@ -5,13 +5,18 @@ namespace App\Http\Requests\Analytics;
 use App\Analytics\Datasets\DatasetAccess;
 use App\Analytics\Datasets\DatasetKey;
 use App\Analytics\Datasets\DatasetRegistry;
+use App\Analytics\Datasets\FieldDataType;
 use App\Analytics\Filters\FilterCondition;
 use App\Analytics\Filters\FilterOperator;
 use App\Analytics\Filters\FilterValidator;
 use App\Analytics\Filters\InvalidFilter;
 use App\Analytics\Queries\DatasetQuery;
+use App\Analytics\Time\RelativeDateDatasetQueryFactory;
+use App\Analytics\Time\RelativeDatePreset;
 use App\Analytics\Time\ReportingTimezone;
 use App\Models\User;
+use Carbon\CarbonImmutable;
+use DateInvalidTimeZoneException;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
@@ -94,6 +99,21 @@ final class ReportPreviewRequest extends FormRequest
                 'sometimes',
                 'integer',
                 'between:1,500',
+            ],
+            'relative_date' => [
+                'sometimes',
+                'nullable',
+                'array:dimension,preset',
+            ],
+            'relative_date.dimension' => [
+                'required_with:relative_date',
+                'string',
+                'regex:/^[a-z][a-z0-9_]*$/',
+            ],
+            'relative_date.preset' => [
+                'required_with:relative_date',
+                'string',
+                Rule::enum(RelativeDatePreset::class),
             ],
         ];
     }
@@ -214,10 +234,70 @@ final class ReportPreviewRequest extends FormRequest
                         );
                     }
                 }
+
+                $relativeDate = $this->input('relative_date');
+
+                if ($relativeDate === null) {
+                    return;
+                }
+
+                if (
+                    ! is_array($relativeDate)
+                    || ! isset($relativeDate['dimension'])
+                    || ! is_string($relativeDate['dimension'])
+                ) {
+                    return;
+                }
+
+                $relativeDimension = $dataset->findDimension(
+                    $relativeDate['dimension'],
+                );
+
+                if ($relativeDimension === null) {
+                    $validator->errors()->add(
+                        'relative_date.dimension',
+                        "Unknown relative date dimension [{$relativeDate['dimension']}] for dataset [{$dataset->key->value}].",
+                    );
+
+                    return;
+                }
+
+                if (
+                    ! in_array(
+                        $relativeDimension->dataType,
+                        [
+                            FieldDataType::DATE,
+                            FieldDataType::DATETIME,
+                        ],
+                        true,
+                    )
+                ) {
+                    $validator->errors()->add(
+                        'relative_date.dimension',
+                        "Relative date dimension [{$relativeDimension->key}] must be a date or datetime.",
+                    );
+                }
+
+                foreach ($filters as $filter) {
+                    if (
+                        is_array($filter)
+                        && ($filter['dimension'] ?? null) === $relativeDimension->key
+                    ) {
+                        $validator->errors()->add(
+                            'relative_date.dimension',
+                            "Explicit filter for [{$relativeDimension->key}] cannot be combined with a relative date preset on the same dimension.",
+                        );
+
+                        break;
+                    }
+                }
             },
         ];
     }
 
+    /**
+     * @throws DateInvalidTimeZoneException
+     */
     public function toDatasetQuery(): DatasetQuery
     {
         /**
@@ -230,7 +310,11 @@ final class ReportPreviewRequest extends FormRequest
          *         operator: string,
          *         value: mixed
          *     }>,
-         *     limit?: int
+         *     limit?: int,
+         *      relative_date?: array{
+         *          dimension: string,
+         *          preset: string
+         *      }|null,
          * } $validated
          */
         $validated = $this->validated();
@@ -248,15 +332,37 @@ final class ReportPreviewRequest extends FormRequest
             $validated['filters'] ?? [],
         );
 
+        $reportingTimezone = new ReportingTimezone(
+            (string) config('analytics.reporting_timezone'),
+        );
+
+        $relativeDate = $validated['relative_date'] ?? null;
+
+        if ($relativeDate !== null) {
+            return app(RelativeDateDatasetQueryFactory::class)->create(
+                dataset: $dataset,
+                dimensions: $validated['dimensions'],
+                measures: $validated['measures'],
+                filters: $filters,
+                relativeDateDimension: $relativeDate['dimension'],
+                preset: RelativeDatePreset::from(
+                    $relativeDate['preset'],
+                ),
+                now: CarbonImmutable::now(
+                    $reportingTimezone->toDateTimeZone(),
+                ),
+                reportingTimezone: $reportingTimezone,
+                limit: $validated['limit'] ?? 100,
+            );
+        }
+
         return new DatasetQuery(
             dataset: $dataset,
             dimensions: $validated['dimensions'],
             measures: $validated['measures'],
             filters: $filters,
             limit: $validated['limit'] ?? 100,
-            reportingTimezone: new ReportingTimezone(
-                (string) config('analytics.reporting_timezone'),
-            ),
+            reportingTimezone: $reportingTimezone,
         );
     }
 }

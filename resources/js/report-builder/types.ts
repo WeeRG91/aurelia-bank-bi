@@ -18,6 +18,17 @@ export type FilterOperator =
     | 'is_null'
     | 'is_not_null';
 
+export type RelativeDatePreset =
+    | 'today'
+    | 'yesterday'
+    | 'last_7_days'
+    | 'last_30_days'
+    | 'month_to_date'
+    | 'previous_month'
+    | 'quarter_to_date'
+    | 'previous_quarter'
+    | 'year_to_date';
+
 export interface DimensionDefinition {
     key: string;
     label: string;
@@ -53,6 +64,7 @@ export interface ReportBuilderBootstrap {
     reportingTimezone: string;
     previewUrl: string;
     datasets: DatasetSummary[];
+    relativeDatePreset: RelativeDatePreset[];
 }
 
 export interface ReportPreviewPayload {
@@ -61,6 +73,7 @@ export interface ReportPreviewPayload {
     measures: string[];
     filters: ReportFilterPayload[];
     limit: number;
+    relative_date: RelativeDateSelection | null;
 }
 
 export type ReportPreviewRow = Record<string, unknown>;
@@ -100,4 +113,9 @@ export interface ReportFilterDraft {
     operator: FilterOperator;
     value: string;
     upperValue: string;
+}
+
+export interface RelativeDateSelection {
+    dimension: string;
+    preset: RelativeDatePreset;
 }

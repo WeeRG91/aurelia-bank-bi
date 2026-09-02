@@ -8,6 +8,7 @@ use App\Analytics\Datasets\DimensionDefinition;
 use App\Analytics\Datasets\MeasureDefinition;
 use App\Analytics\Filters\DimensionFilterRules;
 use App\Analytics\Filters\FilterOperator;
+use App\Analytics\Time\RelativeDatePreset;
 use App\Analytics\Time\ReportingTimezone;
 use App\Http\Controllers\Controller;
 use App\Models\User;
@@ -75,6 +76,10 @@ final class ReportBuilderController extends Controller
             'reportingTimezone' => $reportingTimezone->name,
             'previewUrl' => route('analytics.report-preview'),
             'datasets' => $datasets,
+            'relativeDatePresets' => array_map(
+                static fn (RelativeDatePreset $preset): string => $preset->value,
+                RelativeDatePreset::cases(),
+            ),
         ];
 
         return view('analytics.report-builder', [
