@@ -142,3 +142,5 @@ export interface SavedReportData {
     updatedAt: string | null;
     updateUrl: string;
 }
+
+export type ChartType = 'bar' | 'line';

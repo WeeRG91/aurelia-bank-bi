@@ -2,6 +2,7 @@
 import { computed, ref } from 'vue';
 
 import type {
+    ChartType,
     DatasetSummary,
     DimensionDefinition,
     FilterOperator,
@@ -19,6 +20,7 @@ import type {
     ValidationErrorResponse,
 } from './types';
 import { axios } from '../bootstrap';
+import ReportChart from '@/report-builder/ReportChart.vue';
 
 const MAX_DIMENSIONS = 20;
 const MAX_MEASURES = 10;
@@ -108,6 +110,10 @@ const isPreviewLoading = ref<boolean>(false);
 const preview = ref<ReportPreviewResponse | null>(null);
 const previewError = ref<string | null>(null);
 
+const chartType = ref<ChartType>('bar');
+const chartDimension = ref<string>('');
+const chartMeasure = ref<string>('');
+
 const previewColumns = computed<string[]>(() => {
     if (preview.value === null) {
         return [];
@@ -118,6 +124,16 @@ const previewColumns = computed<string[]>(() => {
 
 const selectedDataset = computed<DatasetSummary | undefined>(() =>
     props.bootstrap.datasets.find((dataset) => dataset.key === selectedDatasetKey.value),
+);
+
+const canUseLineChart = computed<boolean>(() => isTemporalDimension(chartDimension.value));
+
+const canRenderChart = computed<boolean>(
+    () =>
+        preview.value !== null &&
+        preview.value.data.length > 0 &&
+        chartDimension.value !== '' &&
+        chartMeasure.value !== '',
 );
 
 const relativeDateDimensions = computed<DimensionDefinition[]>(
@@ -350,6 +366,48 @@ function buildReportPayload(): ReportPreviewPayload | null {
     };
 }
 
+function isTemporalDimension(dimensionKey: string): boolean {
+    const dimension = selectedDataset.value?.dimensions.find(
+        (candidate) => candidate.key === dimensionKey,
+    );
+
+    return dimension?.dataType === 'date' || dimension?.dataType === 'datetime';
+}
+
+function dimensionLabel(dimensionKey: string): string {
+    return (
+        selectedDataset.value?.dimensions.find((dimension) => dimension.key === dimensionKey)
+            ?.label ?? dimensionKey
+    );
+}
+
+function measureLabel(measureKey: string): string {
+    return (
+        selectedDataset.value?.measures.find((measure) => measure.key === measureKey)?.label ??
+        measureKey
+    );
+}
+
+function synchronizeChartSelection(response: ReportPreviewResponse): void {
+    if (!response.meta.dimensions.includes(chartDimension.value)) {
+        chartDimension.value = response.meta.dimensions[0] ?? '';
+    }
+
+    if (!response.meta.measures.includes(chartMeasure.value)) {
+        chartMeasure.value = response.meta.measures[0] ?? '';
+    }
+
+    if (chartType.value === 'line' && !isTemporalDimension(chartDimension.value)) {
+        chartType.value = 'bar';
+    }
+}
+
+function changeChartDimension(): void {
+    if (chartType.value === 'line' && !isTemporalDimension(chartDimension.value)) {
+        chartType.value = 'bar';
+    }
+}
+
 async function previewReport(): Promise<void> {
     if (selectedDataset.value === undefined) {
         return;
@@ -372,6 +430,7 @@ async function previewReport(): Promise<void> {
         );
 
         preview.value = response.data;
+        synchronizeChartSelection(response.data);
     } catch (error: unknown) {
         if (axios.isAxiosError<ValidationErrorResponse>(error)) {
             const validationErrors = error.response?.data.errors;
@@ -472,6 +531,11 @@ function selectDataset(datasetKey: string): void {
     selectedFilters.value = [];
     selectedRelativeDateDimension.value = '';
     selectedRelativeDatePreset.value = '';
+
+    chartType.value = 'bar';
+    chartDimension.value = '';
+    chartMeasure.value = '';
+
     clearPreview();
 }
 
@@ -1021,6 +1085,92 @@ function toggleMeasure(measure: MeasureDefinition): void {
                         Limit: {{ preview.meta.limit }}
                     </span>
                 </header>
+
+                <section
+                    v-if="
+                        preview.data.length > 0 &&
+                        preview.meta.dimensions.length > 0 &&
+                        preview.meta.measures.length > 0
+                    "
+                    class="border-b border-slate-200 p-5"
+                >
+                    <div class="flex flex-wrap items-start justify-between gap-4">
+                        <div>
+                            <h4 class="font-semibold text-slate-950">Visualization</h4>
+
+                            <p class="mt-1 text-sm text-slate-500">
+                                Charts use the same authorized rows as the table below.
+                            </p>
+                        </div>
+
+                        <div class="grid gap-3 sm:grid-cols-3">
+                            <label class="grid gap-1 text-xs font-medium text-slate-600">
+                                Chart type
+
+                                <select
+                                    v-model="chartType"
+                                    class="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900"
+                                >
+                                    <option value="bar">Bar chart</option>
+                                    <option value="line" :disabled="!canUseLineChart">
+                                        Line chart
+                                    </option>
+                                </select>
+                            </label>
+
+                            <label class="grid gap-1 text-xs font-medium text-slate-600">
+                                Horizontal axis
+
+                                <select
+                                    v-model="chartDimension"
+                                    class="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900"
+                                    @change="changeChartDimension"
+                                >
+                                    <option
+                                        v-for="dimension in preview.meta.dimensions"
+                                        :key="dimension"
+                                        :value="dimension"
+                                    >
+                                        {{ dimensionLabel(dimension) }}
+                                    </option>
+                                </select>
+                            </label>
+
+                            <label class="grid gap-1 text-xs font-medium text-slate-600">
+                                Value
+
+                                <select
+                                    v-model="chartMeasure"
+                                    class="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900"
+                                >
+                                    <option
+                                        v-for="measure in preview.meta.measures"
+                                        :key="measure"
+                                        :value="measure"
+                                    >
+                                        {{ measureLabel(measure) }}
+                                    </option>
+                                </select>
+                            </label>
+                        </div>
+                    </div>
+
+                    <ReportChart
+                        v-if="canRenderChart"
+                        class="mt-6"
+                        :rows="preview.data"
+                        :dimension="chartDimension"
+                        :measure="chartMeasure"
+                        :type="chartType"
+                    />
+                </section>
+
+                <div
+                    v-else-if="preview.data.length > 0"
+                    class="border-b border-slate-200 bg-slate-50 px-5 py-4 text-sm text-slate-600"
+                >
+                    Select at least one dimension and one measure to create a chart.
+                </div>
 
                 <div
                     v-if="preview.data.length === 0"
