@@ -281,6 +281,50 @@ class ReportPreviewRequestTest extends TestCase
         $this->assertTrue($validator->passes());
     }
 
+    public function test_line_chart_accepts_a_separate_series_dimension(): void
+    {
+        $validator = $this->validator([
+            'dataset' => 'account_balances',
+            'dimensions' => [
+                'snapshot_date',
+                'currency',
+            ],
+            'measures' => [
+                'average_available_balance',
+            ],
+            'visualization' => [
+                'type' => 'line',
+                'dimension' => 'snapshot_date',
+                'measure' => 'average_available_balance',
+                'series' => 'currency',
+            ],
+        ]);
+
+        $this->assertTrue($validator->passes());
+    }
+
+    public function test_chart_series_must_be_a_selected_dimension(): void
+    {
+        $validator = $this->validator([
+            'dataset' => 'transactions',
+            'dimensions' => ['booking_month'],
+            'measures' => ['transaction_count'],
+            'visualization' => [
+                'type' => 'line',
+                'dimension' => 'booking_month',
+                'measure' => 'transaction_count',
+                'series' => 'currency',
+            ],
+        ]);
+
+        $this->assertTrue($validator->fails());
+
+        $this->assertSame(
+            ['The chart series must be selected in the report.'],
+            $validator->errors()->get('visualization.series'),
+        );
+    }
+
     /**
      * @param  array<string, mixed>  $payload
      */

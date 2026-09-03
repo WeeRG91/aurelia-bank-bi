@@ -119,7 +119,7 @@ class ReportPreviewRequest extends FormRequest
             'visualization' => [
                 'sometimes',
                 'nullable',
-                'array:type,dimension,measure',
+                'array:type,dimension,measure,series',
             ],
             'visualization.type' => [
                 'required_with:visualization',
@@ -133,6 +133,11 @@ class ReportPreviewRequest extends FormRequest
             ],
             'visualization.measure' => [
                 'required_with:visualization',
+                'string',
+                'regex:/^[a-z][a-z0-9_]*$/',
+            ],
+            'visualization.series' => [
+                'nullable',
                 'string',
                 'regex:/^[a-z][a-z0-9_]*$/',
             ],
@@ -265,6 +270,9 @@ class ReportPreviewRequest extends FormRequest
                     $visualizationMeasure =
                         $visualization['measure'] ?? null;
 
+                    $visualizationSeries =
+                        $visualization['series'] ?? null;
+
                     $visualizationType = isset($visualization['type'])
                     && is_string($visualization['type'])
                         ? ChartType::tryFrom($visualization['type'])
@@ -295,6 +303,31 @@ class ReportPreviewRequest extends FormRequest
                         $validator->errors()->add(
                             'visualization.measure',
                             'The chart measure must be selected in the report.',
+                        );
+                    }
+
+                    if (
+                        is_string($visualizationSeries)
+                        && ! in_array(
+                            $visualizationSeries,
+                            $dimensions,
+                            true,
+                        )
+                    ) {
+                        $validator->errors()->add(
+                            'visualization.series',
+                            'The chart series must be selected in the report.',
+                        );
+                    }
+
+                    if (
+                        is_string($visualizationSeries)
+                        && is_string($visualizationDimension)
+                        && $visualizationSeries === $visualizationDimension
+                    ) {
+                        $validator->errors()->add(
+                            'visualization.series',
+                            'The chart series must differ from the horizontal axis.',
                         );
                     }
 
@@ -503,13 +536,22 @@ class ReportPreviewRequest extends FormRequest
             $validated['filters'] ?? [],
         );
 
+        $visualization = $validated['visualization'] ?? null;
+
         return [
             'dimensions' => $validated['dimensions'],
             'measures' => $validated['measures'],
             'filters' => $filters,
             'relative_date' => $validated['relative_date'] ?? null,
             'limit' => $validated['limit'] ?? 100,
-            'visualization' => $validated['visualization'] ?? null,
+            'visualization' => $visualization === null
+                ? null
+                : [
+                    'type' => $visualization['type'],
+                    'dimension' => $visualization['dimension'],
+                    'measure' => $visualization['measure'],
+                    'series' => $visualization['series'] ?? null,
+                ],
         ];
     }
 }
