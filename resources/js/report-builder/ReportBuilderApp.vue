@@ -114,10 +114,9 @@ const previewError = ref<string | null>(null);
 const initialVisualization = initialReport?.definition.visualization;
 
 const chartType = ref<ChartType>(initialVisualization?.type ?? 'bar');
-
 const chartDimension = ref<string>(initialVisualization?.dimension ?? '');
-
 const chartMeasure = ref<string>(initialVisualization?.measure ?? '');
+const chartSeries = ref<string | null>(initialVisualization?.series ?? null);
 
 const previewColumns = computed<string[]>(() => {
     if (preview.value === null) {
@@ -139,6 +138,12 @@ const canRenderChart = computed<boolean>(
         preview.value.data.length > 0 &&
         chartDimension.value !== '' &&
         chartMeasure.value !== '',
+);
+
+const chartSeriesOptions = computed<string[]>(
+    () =>
+        preview.value?.meta.dimensions.filter((dimension) => dimension !== chartDimension.value) ??
+        [],
 );
 
 const relativeDateDimensions = computed<DimensionDefinition[]>(
@@ -366,6 +371,7 @@ function buildVisualization(): ChartConfiguration | null {
         type: chartType.value,
         dimension: chartDimension.value,
         measure: chartMeasure.value,
+        series: chartSeries.value,
     };
 }
 
@@ -427,11 +433,24 @@ function synchronizeChartSelection(response: ReportPreviewResponse): void {
     if (chartType.value === 'line' && !isTemporalDimension(chartDimension.value)) {
         chartType.value = 'bar';
     }
+
+    if (
+        chartSeries.value === chartDimension.value ||
+        (chartSeries.value !== null && !response.meta.dimensions.includes(chartSeries.value))
+    ) {
+        chartSeries.value =
+            response.meta.dimensions.find((dimension) => dimension !== chartDimension.value) ??
+            null;
+    }
 }
 
 function changeChartDimension(): void {
     if (chartType.value === 'line' && !isTemporalDimension(chartDimension.value)) {
         chartType.value = 'bar';
+    }
+
+    if (chartSeries.value === chartDimension.value) {
+        chartSeries.value = chartSeriesOptions.value[0] ?? null;
     }
 
     clearSaveFeedback();
@@ -564,6 +583,7 @@ function selectDataset(datasetKey: string): void {
     chartType.value = 'bar';
     chartDimension.value = '';
     chartMeasure.value = '';
+    chartSeries.value = null;
 
     clearPreview();
 }
@@ -1132,7 +1152,7 @@ function toggleMeasure(measure: MeasureDefinition): void {
                             </p>
                         </div>
 
-                        <div class="grid gap-3 sm:grid-cols-3">
+                        <div class="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
                             <label class="grid gap-1 text-xs font-medium text-slate-600">
                                 Chart type
 
@@ -1183,6 +1203,26 @@ function toggleMeasure(measure: MeasureDefinition): void {
                                     </option>
                                 </select>
                             </label>
+
+                            <label class="grid gap-1 text-xs font-medium text-slate-600">
+                                Series
+
+                                <select
+                                    v-model="chartSeries"
+                                    class="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900"
+                                    @change="clearSaveFeedback"
+                                >
+                                    <option :value="null">No series</option>
+
+                                    <option
+                                        v-for="dimension in chartSeriesOptions"
+                                        :key="dimension"
+                                        :value="dimension"
+                                    >
+                                        {{ dimensionLabel(dimension) }}
+                                    </option>
+                                </select>
+                            </label>
                         </div>
                     </div>
 
@@ -1193,6 +1233,7 @@ function toggleMeasure(measure: MeasureDefinition): void {
                         :dimension="chartDimension"
                         :measure="chartMeasure"
                         :type="chartType"
+                        :series-dimension="chartSeries"
                     />
                 </section>
 

@@ -150,4 +150,5 @@ export interface ChartConfiguration {
     type: ChartType;
     dimension: string;
     measure: string;
+    series: string | null;
 }
