@@ -56,6 +56,7 @@ class StoreSavedReportRequestTest extends TestCase
                 'preset' => 'last_30_days',
             ],
             'limit' => 75,
+            'visualization' => null,
         ], $request->toStoredDefinition());
     }
 

@@ -242,6 +242,45 @@ class ReportPreviewRequestTest extends TestCase
         );
     }
 
+    public function test_line_chart_requires_a_temporal_dimension(): void
+    {
+        $validator = $this->validator([
+            'dataset' => 'transactions',
+            'dimensions' => ['currency'],
+            'measures' => ['transaction_count'],
+            'visualization' => [
+                'type' => 'line',
+                'dimension' => 'currency',
+                'measure' => 'transaction_count',
+            ],
+        ]);
+
+        $this->assertTrue($validator->fails());
+
+        $this->assertSame(
+            ['Line charts require a temporal dimension.'],
+            $validator->errors()->get(
+                'visualization.dimension',
+            ),
+        );
+    }
+
+    public function test_bar_chart_accepts_selected_dimension_and_measure(): void
+    {
+        $validator = $this->validator([
+            'dataset' => 'transactions',
+            'dimensions' => ['currency'],
+            'measures' => ['transaction_count'],
+            'visualization' => [
+                'type' => 'bar',
+                'dimension' => 'currency',
+                'measure' => 'transaction_count',
+            ],
+        ]);
+
+        $this->assertTrue($validator->passes());
+    }
+
     /**
      * @param  array<string, mixed>  $payload
      */

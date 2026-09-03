@@ -14,6 +14,7 @@ use App\Analytics\Queries\DatasetQuery;
 use App\Analytics\Time\RelativeDateDatasetQueryFactory;
 use App\Analytics\Time\RelativeDatePreset;
 use App\Analytics\Time\ReportingTimezone;
+use App\Analytics\Visualizations\ChartType;
 use App\Models\User;
 use Carbon\CarbonImmutable;
 use DateInvalidTimeZoneException;
@@ -114,6 +115,26 @@ class ReportPreviewRequest extends FormRequest
                 'required_with:relative_date',
                 'string',
                 Rule::enum(RelativeDatePreset::class),
+            ],
+            'visualization' => [
+                'sometimes',
+                'nullable',
+                'array:type,dimension,measure',
+            ],
+            'visualization.type' => [
+                'required_with:visualization',
+                'string',
+                Rule::enum(ChartType::class),
+            ],
+            'visualization.dimension' => [
+                'required_with:visualization',
+                'string',
+                'regex:/^[a-z][a-z0-9_]*$/',
+            ],
+            'visualization.measure' => [
+                'required_with:visualization',
+                'string',
+                'regex:/^[a-z][a-z0-9_]*$/',
             ],
         ];
     }
@@ -232,6 +253,75 @@ class ReportPreviewRequest extends FormRequest
                             "filters.{$index}",
                             $exception->getMessage(),
                         );
+                    }
+                }
+
+                $visualization = $this->input('visualization');
+
+                if (is_array($visualization)) {
+                    $visualizationDimension =
+                        $visualization['dimension'] ?? null;
+
+                    $visualizationMeasure =
+                        $visualization['measure'] ?? null;
+
+                    $visualizationType = isset($visualization['type'])
+                    && is_string($visualization['type'])
+                        ? ChartType::tryFrom($visualization['type'])
+                        : null;
+
+                    if (
+                        is_string($visualizationDimension)
+                        && ! in_array(
+                            $visualizationDimension,
+                            $dimensions,
+                            true,
+                        )
+                    ) {
+                        $validator->errors()->add(
+                            'visualization.dimension',
+                            'The chart dimension must be selected in the report.',
+                        );
+                    }
+
+                    if (
+                        is_string($visualizationMeasure)
+                        && ! in_array(
+                            $visualizationMeasure,
+                            $measures,
+                            true,
+                        )
+                    ) {
+                        $validator->errors()->add(
+                            'visualization.measure',
+                            'The chart measure must be selected in the report.',
+                        );
+                    }
+
+                    if (
+                        $visualizationType === ChartType::LINE
+                        && is_string($visualizationDimension)
+                    ) {
+                        $chartDimension = $dataset->findDimension(
+                            $visualizationDimension,
+                        );
+
+                        if (
+                            $chartDimension !== null
+                            && ! in_array(
+                                $chartDimension->dataType,
+                                [
+                                    FieldDataType::DATE,
+                                    FieldDataType::DATETIME,
+                                ],
+                                true,
+                            )
+                        ) {
+                            $validator->errors()->add(
+                                'visualization.dimension',
+                                'Line charts require a temporal dimension.',
+                            );
+                        }
                     }
                 }
 
@@ -379,7 +469,12 @@ class ReportPreviewRequest extends FormRequest
      *         dimension: string,
      *         preset: string
      *     }|null,
-     *     limit: int
+     *     limit: int,
+     *     visualization: array{
+     *          type: string,
+     *          dimension: string,
+     *          measure: string
+     *      }|null,
      * }
      */
     public function toStoredDefinition(): array
@@ -414,6 +509,7 @@ class ReportPreviewRequest extends FormRequest
             'filters' => $filters,
             'relative_date' => $validated['relative_date'] ?? null,
             'limit' => $validated['limit'] ?? 100,
+            'visualization' => $validated['visualization'] ?? null,
         ];
     }
 }
