@@ -588,6 +588,15 @@ function selectDataset(datasetKey: string): void {
     clearPreview();
 }
 
+function selectChartType(type: ChartType): void {
+    if (type === 'line' && !canUseLineChart.value) {
+        return;
+    }
+
+    chartType.value = type;
+    clearSaveFeedback();
+}
+
 function isDimensionSelected(dimensionKey: string): boolean {
     return selectedDimensionKeys.value.includes(dimensionKey);
 }
@@ -665,8 +674,13 @@ function toggleMeasure(measure: MeasureDefinition): void {
         </p>
     </section>
 
-    <section v-else class="grid gap-6 lg:grid-cols-[20rem_minmax(0,1fr)]">
-        <aside class="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+    <section
+        v-else
+        class="grid items-start gap-6 lg:grid-cols-[15rem_minmax(0,1fr)] xl:grid-cols-[16rem_minmax(0,1fr)]"
+    >
+        <aside
+            class="h-fit rounded-xl border border-slate-200 bg-white p-4 shadow-sm lg:sticky lg:top-6"
+        >
             <h2 class="text-sm font-semibold tracking-wide text-slate-500 uppercase">
                 Available datasets
             </h2>
@@ -676,7 +690,7 @@ function toggleMeasure(measure: MeasureDefinition): void {
                     v-for="dataset in bootstrap.datasets"
                     :key="dataset.key"
                     type="button"
-                    class="w-full rounded-lg border px-4 py-3 text-left transition"
+                    class="w-full rounded-lg border px-3 py-2.5 text-left transition"
                     :class="
                         selectedDatasetKey === dataset.key
                             ? 'border-amber-500 bg-amber-50 text-amber-950'
@@ -1143,7 +1157,7 @@ function toggleMeasure(measure: MeasureDefinition): void {
                     "
                     class="border-b border-slate-200 p-5"
                 >
-                    <div class="flex flex-wrap items-start justify-between gap-4">
+                    <div class="flex flex-wrap items-center justify-between gap-4">
                         <div>
                             <h4 class="font-semibold text-slate-950">Visualization</h4>
 
@@ -1152,78 +1166,98 @@ function toggleMeasure(measure: MeasureDefinition): void {
                             </p>
                         </div>
 
-                        <div class="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-                            <label class="grid gap-1 text-xs font-medium text-slate-600">
-                                Chart type
+                        <div
+                            class="inline-flex rounded-lg bg-slate-100 p-1"
+                            aria-label="Chart type"
+                        >
+                            <button
+                                type="button"
+                                class="rounded-md px-4 py-2 text-sm font-medium transition"
+                                :class="
+                                    chartType === 'bar'
+                                        ? 'bg-white text-slate-950 shadow-sm'
+                                        : 'text-slate-600 hover:text-slate-950'
+                                "
+                                :aria-pressed="chartType === 'bar'"
+                                @click="selectChartType('bar')"
+                            >
+                                Bar
+                            </button>
 
-                                <select
-                                    v-model="chartType"
-                                    class="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900"
-                                    @change="clearSaveFeedback"
-                                >
-                                    <option value="bar">Bar chart</option>
-                                    <option value="line" :disabled="!canUseLineChart">
-                                        Line chart
-                                    </option>
-                                </select>
-                            </label>
-
-                            <label class="grid gap-1 text-xs font-medium text-slate-600">
-                                Horizontal axis
-
-                                <select
-                                    v-model="chartDimension"
-                                    class="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900"
-                                    @change="changeChartDimension"
-                                >
-                                    <option
-                                        v-for="dimension in preview.meta.dimensions"
-                                        :key="dimension"
-                                        :value="dimension"
-                                    >
-                                        {{ dimensionLabel(dimension) }}
-                                    </option>
-                                </select>
-                            </label>
-
-                            <label class="grid gap-1 text-xs font-medium text-slate-600">
-                                Value
-
-                                <select
-                                    v-model="chartMeasure"
-                                    class="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900"
-                                    @change="clearSaveFeedback"
-                                >
-                                    <option
-                                        v-for="measure in preview.meta.measures"
-                                        :key="measure"
-                                        :value="measure"
-                                    >
-                                        {{ measureLabel(measure) }}
-                                    </option>
-                                </select>
-                            </label>
-
-                            <label class="grid gap-1 text-xs font-medium text-slate-600">
-                                Series
-
-                                <select
-                                    v-model="chartSeries"
-                                    class="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900"
-                                    @change="clearSaveFeedback"
-                                >
-                                    <option :value="null">No series</option>
-
-                                    <option
-                                        v-for="dimension in chartSeriesOptions"
-                                        :key="dimension"
-                                        :value="dimension"
-                                    >
-                                        {{ dimensionLabel(dimension) }}
-                                    </option>
-                                </select>
-                            </label>
+                            <button
+                                type="button"
+                                class="rounded-md px-4 py-2 text-sm font-medium transition disabled:cursor-not-allowed disabled:opacity-40"
+                                :class="
+                                    chartType === 'line'
+                                        ? 'bg-white text-slate-950 shadow-sm'
+                                        : 'text-slate-600 hover:text-slate-950'
+                                "
+                                :aria-pressed="chartType === 'line'"
+                                :disabled="!canUseLineChart"
+                                title="Line charts require a temporal horizontal axis"
+                                @click="selectChartType('line')"
+                            >
+                                Line
+                            </button>
                         </div>
+                    </div>
+
+                    <div class="mt-5 grid gap-4 md:grid-cols-3">
+                        <label class="grid gap-1.5 text-xs font-medium text-slate-600">
+                            Horizontal axis
+
+                            <select
+                                v-model="chartDimension"
+                                class="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900"
+                                @change="changeChartDimension"
+                            >
+                                <option
+                                    v-for="dimension in preview.meta.dimensions"
+                                    :key="dimension"
+                                    :value="dimension"
+                                >
+                                    {{ dimensionLabel(dimension) }}
+                                </option>
+                            </select>
+                        </label>
+
+                        <label class="grid gap-1.5 text-xs font-medium text-slate-600">
+                            Value
+
+                            <select
+                                v-model="chartMeasure"
+                                class="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900"
+                                @change="clearSaveFeedback"
+                            >
+                                <option
+                                    v-for="measure in preview.meta.measures"
+                                    :key="measure"
+                                    :value="measure"
+                                >
+                                    {{ measureLabel(measure) }}
+                                </option>
+                            </select>
+                        </label>
+
+                        <label class="grid gap-1.5 text-xs font-medium text-slate-600">
+                            Series
+
+                            <select
+                                v-model="chartSeries"
+                                class="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900"
+                                @change="clearSaveFeedback"
+                            >
+                                <option :value="null">No series</option>
+
+                                <option
+                                    v-for="dimension in chartSeriesOptions"
+                                    :key="dimension"
+                                    :value="dimension"
+                                >
+                                    {{ dimensionLabel(dimension) }}
+                                </option>
+                            </select>
+                        </label>
                     </div>
 
                     <ReportChart
