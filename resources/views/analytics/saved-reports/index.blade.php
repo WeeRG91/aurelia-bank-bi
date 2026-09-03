@@ -41,6 +41,14 @@
             </div>
         </header>
 
+        @if (! $showingTrash)
+            <div class="border-b border-slate-200 bg-slate-50 px-6 py-3 text-sm text-slate-600">
+                Downloads use the saved report settings and your current data access.
+                Relative dates are recalculated when you export.
+                Results respect the saved row limit and may not include every matching row.
+            </div>
+        @endif
+
         <div class="overflow-x-auto">
             <table class="min-w-full divide-y divide-slate-200 text-sm">
                 <thead class="bg-slate-50">
@@ -117,6 +125,13 @@
                                     </button>
                                 </form>
                             @else
+                                @can('export', $report)
+                                    <p class="mb-2 text-xs text-slate-500">
+                                        Export up to
+                                        {{ number_format((int) ($report->definition['limit'] ?? 100)) }}
+                                        result rows
+                                    </p>
+                                @endcan
                                 <div class="flex flex-wrap items-center justify-end gap-2">
                                     @can('export', $report)
                                         <form
