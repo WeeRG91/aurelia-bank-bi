@@ -2,6 +2,7 @@
 import { computed, ref } from 'vue';
 
 import type {
+    ChartConfiguration,
     ChartType,
     DatasetSummary,
     DimensionDefinition,
@@ -110,9 +111,13 @@ const isPreviewLoading = ref<boolean>(false);
 const preview = ref<ReportPreviewResponse | null>(null);
 const previewError = ref<string | null>(null);
 
-const chartType = ref<ChartType>('bar');
-const chartDimension = ref<string>('');
-const chartMeasure = ref<string>('');
+const initialVisualization = initialReport?.definition.visualization;
+
+const chartType = ref<ChartType>(initialVisualization?.type ?? 'bar');
+
+const chartDimension = ref<string>(initialVisualization?.dimension ?? '');
+
+const chartMeasure = ref<string>(initialVisualization?.measure ?? '');
 
 const previewColumns = computed<string[]>(() => {
     if (preview.value === null) {
@@ -343,6 +348,27 @@ function changeRelativeDatePreset(): void {
     clearPreview();
 }
 
+function buildVisualization(): ChartConfiguration | null {
+    if (
+        chartDimension.value === '' ||
+        chartMeasure.value === '' ||
+        !selectedDimensionKeys.value.includes(chartDimension.value) ||
+        !selectedMeasureKeys.value.includes(chartMeasure.value)
+    ) {
+        return null;
+    }
+
+    if (chartType.value === 'line' && !isTemporalDimension(chartDimension.value)) {
+        return null;
+    }
+
+    return {
+        type: chartType.value,
+        dimension: chartDimension.value,
+        measure: chartMeasure.value,
+    };
+}
+
 function buildReportPayload(): ReportPreviewPayload | null {
     if (selectedDataset.value === undefined) {
         return null;
@@ -362,6 +388,7 @@ function buildReportPayload(): ReportPreviewPayload | null {
         measures: selectedMeasureKeys.value,
         filters: selectedFilters.value.map(toFilterPayload),
         relative_date: relativeDateSelection,
+        visualization: buildVisualization(),
         limit: reportLimit.value,
     };
 }
@@ -406,6 +433,8 @@ function changeChartDimension(): void {
     if (chartType.value === 'line' && !isTemporalDimension(chartDimension.value)) {
         chartType.value = 'bar';
     }
+
+    clearSaveFeedback();
 }
 
 async function previewReport(): Promise<void> {
@@ -1110,6 +1139,7 @@ function toggleMeasure(measure: MeasureDefinition): void {
                                 <select
                                     v-model="chartType"
                                     class="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900"
+                                    @change="clearSaveFeedback"
                                 >
                                     <option value="bar">Bar chart</option>
                                     <option value="line" :disabled="!canUseLineChart">
@@ -1142,6 +1172,7 @@ function toggleMeasure(measure: MeasureDefinition): void {
                                 <select
                                     v-model="chartMeasure"
                                     class="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900"
+                                    @change="clearSaveFeedback"
                                 >
                                     <option
                                         v-for="measure in preview.meta.measures"

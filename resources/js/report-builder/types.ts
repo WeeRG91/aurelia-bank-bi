@@ -76,6 +76,7 @@ export interface ReportPreviewPayload {
     filters: ReportFilterPayload[];
     limit: number;
     relative_date: RelativeDateSelection | null;
+    visualization: ChartConfiguration | null;
 }
 
 export type ReportPreviewRow = Record<string, unknown>;
@@ -144,3 +145,9 @@ export interface SavedReportData {
 }
 
 export type ChartType = 'bar' | 'line';
+
+export interface ChartConfiguration {
+    type: ChartType;
+    dimension: string;
+    measure: string;
+}
