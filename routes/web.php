@@ -5,6 +5,7 @@ use App\Http\Controllers\Analytics\ReportBuilderController;
 use App\Http\Controllers\Analytics\ReportPreviewController;
 use App\Http\Controllers\Analytics\SavedReportController;
 use App\Http\Controllers\Analytics\SavedReportDestroyController;
+use App\Http\Controllers\Analytics\SavedReportDuplicateController;
 use App\Http\Controllers\Analytics\SavedReportRestoreController;
 use App\Http\Controllers\Analytics\SavedReportStoreController;
 use App\Http\Controllers\Analytics\SavedReportUpdateController;
@@ -58,6 +59,9 @@ Route::middleware(['auth', 'active.employee'])->group(function (): void {
                 ->name('saved-reports.trash');
             Route::post('/saved-reports', SavedReportStoreController::class)
                 ->name('saved-reports.store');
+            Route::post('/saved-reports/{savedReport}/duplicate', SavedReportDuplicateController::class)
+                ->whereNumber('savedReport')
+                ->name('saved-reports.duplicate');
             Route::put('/saved-reports/{savedReport}', SavedReportUpdateController::class)
                 ->whereNumber('savedReport')
                 ->name('saved-reports.update');

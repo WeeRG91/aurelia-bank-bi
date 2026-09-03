@@ -85,7 +85,32 @@
     </div>
 </header>
 
-<main class="mx-auto max-w-6xl px-6 py-10">
+@if (session('status') || session('error'))
+    <div
+        class="mx-auto max-w-6xl px-6 pt-6"
+        aria-live="polite"
+    >
+        @if (session('status'))
+            <div
+                role="status"
+                class="rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800"
+            >
+                {{ session('status') }}
+            </div>
+        @endif
+
+        @if (session('error'))
+            <div
+                role="alert"
+                class="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800"
+            >
+                {{ session('error') }}
+            </div>
+        @endif
+    </div>
+@endif
+
+<main class="mx-auto max-w-6xl px-6 py-6">
     @yield('content')
 </main>
 </body>

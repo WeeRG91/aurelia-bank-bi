@@ -4,12 +4,6 @@
 
 @section('content')
     <section class="rounded-xl border border-slate-200 bg-white shadow-sm">
-        @if (session('status'))
-            <div class="border-b border-emerald-200 rounded-t-xl bg-emerald-50 px-6 py-4 text-sm text-emerald-800">
-                {{ session('status') }}
-            </div>
-        @endif
-
         <header
             class="flex flex-wrap items-center justify-between gap-4 border-b border-slate-200 p-6"
         >
@@ -123,21 +117,38 @@
                                     </button>
                                 </form>
                             @else
-                                <form
-                                    method="POST"
-                                    action="{{ route('analytics.saved-reports.destroy', $report) }}"
-                                    onsubmit="return confirm('Move this report to the recycle bin?')"
-                                >
-                                    @csrf
-                                    @method('DELETE')
-
-                                    <button
-                                        type="submit"
-                                        class="text-sm font-medium text-red-700 hover:underline"
+                                <div class="flex justify-end gap-4">
+                                    <form
+                                        method="POST"
+                                        action="{{ route('analytics.saved-reports.duplicate', $report) }}"
+                                        onsubmit="return confirm('Duplicate this report?')"
                                     >
-                                        Delete
-                                    </button>
-                                </form>
+                                        @csrf
+
+                                        <button
+                                            type="submit"
+                                            class="text-sm font-medium text-blue-700 hover:underline"
+                                        >
+                                            Duplicate
+                                        </button>
+                                    </form>
+
+                                    <form
+                                        method="POST"
+                                        action="{{ route('analytics.saved-reports.destroy', $report) }}"
+                                        onsubmit="return confirm('Move this report to the recycle bin?')"
+                                    >
+                                        @csrf
+                                        @method('DELETE')
+
+                                        <button
+                                            type="submit"
+                                            class="text-sm font-medium text-red-700 hover:underline"
+                                        >
+                                            Delete
+                                        </button>
+                                    </form>
+                                </div>
                             @endif
                         </td>
                     </tr>
