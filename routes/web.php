@@ -4,6 +4,8 @@ use App\Http\Controllers\Analytics\DatasetCatalogController;
 use App\Http\Controllers\Analytics\ReportBuilderController;
 use App\Http\Controllers\Analytics\ReportPreviewController;
 use App\Http\Controllers\Analytics\SavedReportController;
+use App\Http\Controllers\Analytics\SavedReportDestroyController;
+use App\Http\Controllers\Analytics\SavedReportRestoreController;
 use App\Http\Controllers\Analytics\SavedReportStoreController;
 use App\Http\Controllers\Analytics\SavedReportUpdateController;
 use App\Http\Controllers\Auth\AuthenticatedSessionController;
@@ -52,11 +54,19 @@ Route::middleware(['auth', 'active.employee'])->group(function (): void {
 
             Route::get('/saved-reports', [SavedReportController::class, 'index'])
                 ->name('saved-reports.index');
+            Route::get('/saved-reports/trash', [SavedReportController::class, 'trash'])
+                ->name('saved-reports.trash');
             Route::post('/saved-reports', SavedReportStoreController::class)
                 ->name('saved-reports.store');
             Route::put('/saved-reports/{savedReport}', SavedReportUpdateController::class)
                 ->whereNumber('savedReport')
                 ->name('saved-reports.update');
+            Route::patch('/saved-reports/{savedReport}/restore', SavedReportRestoreController::class)
+                ->whereNumber('savedReport')
+                ->name('saved-reports.restore');
+            Route::delete('/saved-reports/{savedReport}', SavedReportDestroyController::class)
+                ->whereNumber('savedReport')
+                ->name('saved-reports.destroy');
 
             Route::get('/datasets', [DatasetCatalogController::class, 'index'])
                 ->name('datasets.index');
