@@ -9,6 +9,7 @@ use PhpOffice\PhpSpreadsheet\Cell\Coordinate;
 use PhpOffice\PhpSpreadsheet\Cell\DataType;
 use PhpOffice\PhpSpreadsheet\Shared\Date;
 use PhpOffice\PhpSpreadsheet\Spreadsheet;
+use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
 use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
 use RuntimeException;
 use Throwable;
@@ -160,19 +161,50 @@ final class XlsxReportWriter
     }
 
     private function writeNumericCell(
-        mixed $sheet,
+        Worksheet $sheet,
         string $coordinate,
         mixed $value,
     ): void {
-        if (! is_numeric($value)) {
+        if (! is_string($value) && ! is_int($value)) {
             throw new InvalidArgumentException(
-                "Non-numeric value provided for XLSX cell [{$coordinate}].",
+                "XLSX numeric cell [{$coordinate}] requires an integer or decimal string.",
             );
+        }
+
+        $number = (string) $value;
+
+        if (preg_match('/^-?[0-9]+(?:\.[0-9]+)?$/D', $number) !== 1) {
+            throw new InvalidArgumentException(
+                "Invalid numeric value for XLSX cell [{$coordinate}].",
+            );
+        }
+
+        // Conservatively count all digits, including trailing decimal zeros.
+        $digits = str_replace(['-', '.'], '', $number);
+
+        if (strlen($digits) > 15) {
+            $sheet->setCellValueExplicit(
+                $coordinate,
+                $number,
+                DataType::TYPE_STRING,
+            );
+
+            $sheet->getStyle($coordinate)
+                ->getNumberFormat()
+                ->setFormatCode('@');
+
+            $sheet->getComment($coordinate)
+                ->getText()
+                ->createTextRun(
+                    'Stored as text to preserve precision beyond Excel numeric limits.',
+                );
+
+            return;
         }
 
         $sheet->setCellValueExplicit(
             $coordinate,
-            (string) $value,
+            $number,
             DataType::TYPE_NUMERIC,
         );
     }

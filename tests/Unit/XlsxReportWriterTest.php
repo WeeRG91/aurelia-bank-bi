@@ -44,6 +44,12 @@ class XlsxReportWriterTest extends TestCase
                     'balance' => '1250.50',
                     'account_count' => 3,
                 ],
+                [
+                    'description' => 'High-precision balance',
+                    'snapshot_date' => '2026-09-03',
+                    'balance' => '12345678901234567.89',
+                    'account_count' => 1,
+                ],
             ],
         );
 
@@ -90,6 +96,16 @@ class XlsxReportWriterTest extends TestCase
             $this->assertEquals(
                 1250.50,
                 $sheet->getCell('C2')->getValue(),
+            );
+
+            $this->assertSame(
+                DataType::TYPE_STRING,
+                $sheet->getCell('C3')->getDataType(),
+            );
+
+            $this->assertSame(
+                '12345678901234567.89',
+                $sheet->getCell('C3')->getValue(),
             );
 
             $this->assertSame('A2', $sheet->getFreezePane());
