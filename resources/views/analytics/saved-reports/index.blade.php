@@ -117,7 +117,43 @@
                                     </button>
                                 </form>
                             @else
-                                <div class="flex justify-end gap-4">
+                                <div class="flex flex-wrap items-center justify-end gap-2">
+                                    @can('export', $report)
+                                        <form
+                                            method="POST"
+                                            action="{{ route('analytics.saved-reports.export', $report) }}"
+                                        >
+                                            @csrf
+
+                                            <input type="hidden" name="format" value="csv">
+
+                                            <button
+                                                type="submit"
+                                                class="rounded-md border border-emerald-200 bg-emerald-50 px-3 py-1.5 text-xs font-semibold text-emerald-800 hover:bg-emerald-100"
+                                                title="Download as CSV"
+                                            >
+                                                CSV
+                                            </button>
+                                        </form>
+
+                                        <form
+                                            method="POST"
+                                            action="{{ route('analytics.saved-reports.export', $report) }}"
+                                        >
+                                            @csrf
+
+                                            <input type="hidden" name="format" value="xlsx">
+
+                                            <button
+                                                type="submit"
+                                                class="rounded-md border border-emerald-600 bg-emerald-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-emerald-700"
+                                                title="Download as Excel workbook"
+                                            >
+                                                Excel
+                                            </button>
+                                        </form>
+                                    @endcan
+
                                     <form
                                         method="POST"
                                         action="{{ route('analytics.saved-reports.duplicate', $report) }}"
@@ -127,7 +163,7 @@
 
                                         <button
                                             type="submit"
-                                            class="text-sm font-medium text-blue-700 hover:underline"
+                                            class="px-2 py-1.5 text-sm font-medium text-blue-700 hover:underline"
                                         >
                                             Duplicate
                                         </button>
@@ -143,7 +179,7 @@
 
                                         <button
                                             type="submit"
-                                            class="text-sm font-medium text-red-700 hover:underline"
+                                            class="px-2 py-1.5 text-sm font-medium text-red-700 hover:underline"
                                         >
                                             Delete
                                         </button>
@@ -155,7 +191,7 @@
                 @empty
                     <tr>
                         <td
-                            colspan="5"
+                            colspan="6"
                             class="px-6 py-12 text-center text-slate-500"
                         >
                             You have no saved reports yet.

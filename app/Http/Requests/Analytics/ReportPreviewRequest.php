@@ -6,12 +6,11 @@ use App\Analytics\Datasets\DatasetAccess;
 use App\Analytics\Datasets\DatasetKey;
 use App\Analytics\Datasets\DatasetRegistry;
 use App\Analytics\Datasets\FieldDataType;
-use App\Analytics\Filters\FilterCondition;
 use App\Analytics\Filters\FilterOperator;
 use App\Analytics\Filters\FilterValidator;
 use App\Analytics\Filters\InvalidFilter;
 use App\Analytics\Queries\DatasetQuery;
-use App\Analytics\Time\RelativeDateDatasetQueryFactory;
+use App\Analytics\Queries\ReportDefinitionQueryFactory;
 use App\Analytics\Time\RelativeDatePreset;
 use App\Analytics\Time\ReportingTimezone;
 use App\Analytics\Visualizations\ChartType;
@@ -423,68 +422,26 @@ class ReportPreviewRequest extends FormRequest
      */
     public function toDatasetQuery(): DatasetQuery
     {
-        /**
-         * @var array{
-         *     dataset: string,
-         *     dimensions: list<string>,
-         *     measures: list<string>,
-         *     filters?: list<array{
-         *         dimension: string,
-         *         operator: string,
-         *         value: mixed
-         *     }>,
-         *     limit?: int,
-         *      relative_date?: array{
-         *          dimension: string,
-         *          preset: string
-         *      }|null,
-         * } $validated
-         */
         $validated = $this->validated();
 
         $dataset = DatasetKey::from($validated['dataset']);
-        $filterValidator = app(FilterValidator::class);
-
-        $filters = array_map(
-            fn (array $filter): FilterCondition => $filterValidator->validate(
-                $dataset,
-                $filter['dimension'],
-                $filter['operator'],
-                $filter['value'],
-            ),
-            $validated['filters'] ?? [],
-        );
 
         $reportingTimezone = new ReportingTimezone(
             (string) config('analytics.reporting_timezone'),
         );
 
-        $relativeDate = $validated['relative_date'] ?? null;
-
-        if ($relativeDate !== null) {
-            return app(RelativeDateDatasetQueryFactory::class)->create(
-                dataset: $dataset,
-                dimensions: $validated['dimensions'],
-                measures: $validated['measures'],
-                filters: $filters,
-                relativeDateDimension: $relativeDate['dimension'],
-                preset: RelativeDatePreset::from(
-                    $relativeDate['preset'],
-                ),
-                now: CarbonImmutable::now(
-                    $reportingTimezone->toDateTimeZone(),
-                ),
-                reportingTimezone: $reportingTimezone,
-                limit: $validated['limit'] ?? 100,
-            );
-        }
-
-        return new DatasetQuery(
+        return app(ReportDefinitionQueryFactory::class)->create(
             dataset: $dataset,
-            dimensions: $validated['dimensions'],
-            measures: $validated['measures'],
-            filters: $filters,
-            limit: $validated['limit'] ?? 100,
+            definition: [
+                'dimensions' => $validated['dimensions'],
+                'measures' => $validated['measures'],
+                'filters' => $validated['filters'] ?? [],
+                'relative_date' => $validated['relative_date'] ?? null,
+                'limit' => $validated['limit'] ?? 100,
+            ],
+            now: CarbonImmutable::now(
+                $reportingTimezone->toDateTimeZone(),
+            ),
             reportingTimezone: $reportingTimezone,
         );
     }

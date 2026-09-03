@@ -77,6 +77,15 @@ final readonly class SavedReportPolicy
         return false;
     }
 
+    public function export(User $user, SavedReport $savedReport): bool
+    {
+        return $this->isOwner($user, $savedReport)
+            && $this->datasetAccess->canUse(
+                $user,
+                $savedReport->dataset,
+            );
+    }
+
     private function isOwner(User $user, SavedReport $savedReport): bool
     {
         return $user->employee?->getKey() === $savedReport->owner_employee_id;

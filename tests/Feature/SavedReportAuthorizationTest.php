@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Analytics\Datasets\DatasetKey;
 use App\Enums\EmployeeRole;
 use App\Enums\EmployeeStatus;
 use App\Models\Employee;
@@ -128,6 +129,36 @@ class SavedReportAuthorizationTest extends TestCase
         );
     }
 
+    public function test_owner_can_export_a_permitted_active_dataset(): void
+    {
+        $owner = $this->user(
+            EmployeeRole::FINANCE_ANALYST,
+            employeeId: 10,
+        );
+
+        $this->assertTrue(
+            Gate::forUser($owner)->allows(
+                'export',
+                $this->report(ownerEmployeeId: 10),
+            ),
+        );
+    }
+
+    public function test_owner_cannot_export_after_losing_dataset_access(): void
+    {
+        $administrator = $this->user(
+            EmployeeRole::ADMINISTRATOR,
+            employeeId: 10,
+        );
+
+        $this->assertFalse(
+            Gate::forUser($administrator)->allows(
+                'export',
+                $this->report(ownerEmployeeId: 10),
+            ),
+        );
+    }
+
     private function user(
         EmployeeRole $role,
         int $employeeId,
@@ -158,6 +189,7 @@ class SavedReportAuthorizationTest extends TestCase
         return (new SavedReport)->forceFill([
             'id' => 500,
             'owner_employee_id' => $ownerEmployeeId,
+            'dataset' => DatasetKey::TRANSACTIONS,
         ]);
     }
 }
