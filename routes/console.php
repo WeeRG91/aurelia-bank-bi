@@ -12,3 +12,8 @@ Schedule::command('reports:expire-exports')
     ->dailyAt('02:15')
     ->withoutOverlapping()
     ->onOneServer();
+
+Schedule::command('horizon:snapshot')
+    ->everyFiveMinutes()
+    ->withoutOverlapping()
+    ->onOneServer();

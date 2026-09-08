@@ -163,4 +163,15 @@ class GenerateReportExport implements ShouldQueue
             ),
         ])->save();
     }
+
+    /**
+     * @return list<string>
+     */
+    public function tags(): array
+    {
+        return [
+            'report-export:'.$this->exportId,
+            'queue:exports',
+        ];
+    }
 }
