@@ -1,7 +1,9 @@
 <?php
 
 use App\Http\Controllers\Analytics\DatasetCatalogController;
+use App\Http\Controllers\Analytics\QueuedReportExportController;
 use App\Http\Controllers\Analytics\ReportBuilderController;
+use App\Http\Controllers\Analytics\ReportExportController;
 use App\Http\Controllers\Analytics\ReportPreviewController;
 use App\Http\Controllers\Analytics\SavedReportController;
 use App\Http\Controllers\Analytics\SavedReportDestroyController;
@@ -66,6 +68,9 @@ Route::middleware(['auth', 'active.employee'])->group(function (): void {
             Route::post('/saved-reports/{savedReport}/export', SavedReportExportController::class)
                 ->whereNumber('savedReport')
                 ->name('saved-reports.export');
+            Route::post('/saved-reports/{savedReport}/exports', QueuedReportExportController::class)
+                ->whereNumber('savedReport')
+                ->name('saved-reports.exports.store');
             Route::put('/saved-reports/{savedReport}', SavedReportUpdateController::class)
                 ->whereNumber('savedReport')
                 ->name('saved-reports.update');
@@ -75,6 +80,11 @@ Route::middleware(['auth', 'active.employee'])->group(function (): void {
             Route::delete('/saved-reports/{savedReport}', SavedReportDestroyController::class)
                 ->whereNumber('savedReport')
                 ->name('saved-reports.destroy');
+
+            Route::get('/report-exports', [ReportExportController::class, 'index'])
+                ->name('report-exports.index');
+            Route::get('/report-exports/{reportExport}/download', [ReportExportController::class, 'download'])
+                ->name('report-exports.download');
 
             Route::get('/datasets', [DatasetCatalogController::class, 'index'])
                 ->name('datasets.index');

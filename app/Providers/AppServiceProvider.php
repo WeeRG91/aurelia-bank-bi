@@ -4,9 +4,11 @@ namespace App\Providers;
 
 use App\Models\Branch;
 use App\Models\Employee;
+use App\Models\ReportExport;
 use App\Models\SavedReport;
 use App\Policies\BranchPolicy;
 use App\Policies\EmployeePolicy;
+use App\Policies\ReportExportPolicy;
 use App\Policies\SavedReportPolicy;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\ServiceProvider;
@@ -29,5 +31,6 @@ class AppServiceProvider extends ServiceProvider
         Gate::policy(Branch::class, BranchPolicy::class);
         Gate::policy(Employee::class, EmployeePolicy::class);
         Gate::policy(SavedReport::class, SavedReportPolicy::class);
+        Gate::policy(ReportExport::class, ReportExportPolicy::class);
     }
 }

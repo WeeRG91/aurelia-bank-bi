@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
 #[Fillable([
@@ -29,6 +30,14 @@ final class SavedReport extends Model
     public function owner(): BelongsTo
     {
         return $this->belongsTo(Employee::class, 'owner_employee_id');
+    }
+
+    /**
+     * @return HasMany<ReportExport, $this>
+     */
+    public function exports(): HasMany
+    {
+        return $this->hasMany(ReportExport::class);
     }
 
     /**

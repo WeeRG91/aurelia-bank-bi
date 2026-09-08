@@ -53,6 +53,14 @@ class Employee extends Model
     }
 
     /**
+     * @return HasMany<ReportExport, $this>
+     */
+    public function requestedReportExports(): HasMany
+    {
+        return $this->hasMany(ReportExport::class, 'requested_by_employee_id');
+    }
+
+    /**
      * @return array<string, string>
      */
     public function casts(): array

@@ -57,6 +57,15 @@
                     </a>
                 @endcan
 
+                @can('viewAny', \App\Models\ReportExport::class)
+                    <a
+                        href="{{ route('analytics.report-exports.index') }}"
+                        class="text-sm font-medium text-slate-700 hover:text-amber-700"
+                    >
+                        My Exports
+                    </a>
+                @endcan
+
                 <a
                     href="{{ route('profile') }}"
                     class="text-sm font-medium text-slate-700 hover:text-amber-700"

@@ -60,6 +60,13 @@ return [
             'report' => false,
         ],
 
+        'report_exports' => [
+            'driver' => 'local',
+            'root' => storage_path('app/private/report-exports'),
+            'serve' => false,
+            'throw' => true,
+        ],
+
     ],
 
     /*

@@ -43,9 +43,9 @@
 
         @if (! $showingTrash)
             <div class="border-b border-slate-200 bg-slate-50 px-6 py-3 text-sm text-slate-600">
-                Downloads use the saved report settings and your current data access.
-                Relative dates are recalculated when you export.
-                Results respect the saved row limit and may not include every matching row.
+                Exports run securely in the background using the saved report settings
+                and your current data access. Relative dates are recalculated when the
+                worker processes the export.
             </div>
         @endif
 
@@ -136,7 +136,7 @@
                                     @can('export', $report)
                                         <form
                                             method="POST"
-                                            action="{{ route('analytics.saved-reports.export', $report) }}"
+                                            action="{{ route('analytics.saved-reports.exports.store', $report) }}"
                                         >
                                             @csrf
 
@@ -147,13 +147,13 @@
                                                 class="rounded-md border border-emerald-200 bg-emerald-50 px-3 py-1.5 text-xs font-semibold text-emerald-800 hover:bg-emerald-100"
                                                 title="Download as CSV"
                                             >
-                                                CSV
+                                                Queue CSV
                                             </button>
                                         </form>
 
                                         <form
                                             method="POST"
-                                            action="{{ route('analytics.saved-reports.export', $report) }}"
+                                            action="{{ route('analytics.saved-reports.exports.store', $report) }}"
                                         >
                                             @csrf
 
@@ -164,7 +164,7 @@
                                                 class="rounded-md border border-emerald-600 bg-emerald-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-emerald-700"
                                                 title="Download as Excel workbook"
                                             >
-                                                Excel
+                                                Queue Excel
                                             </button>
                                         </form>
                                     @endcan
