@@ -97,6 +97,91 @@ class StoreSavedReportRequestTest extends TestCase
         $this->assertFalse($request->authorize());
     }
 
+    public function test_analyst_cannot_store_confidential_identifier(): void
+    {
+        $payload = [
+            ...$this->validPayload(),
+            'dimensions' => [
+                'transaction_reference',
+            ],
+        ];
+
+        $request = $this->request(
+            $payload,
+            EmployeeRole::BRANCH_ANALYST,
+        );
+
+        $validator = $this->validatorFor(
+            $request,
+            $payload,
+        );
+
+        $this->assertTrue($validator->fails());
+
+        $this->assertArrayHasKey(
+            'fields',
+            $validator->errors()->toArray(),
+        );
+
+        $this->assertSame(
+            'One or more report fields are not available to your role.',
+            $validator->errors()->first('fields'),
+        );
+    }
+
+    public function test_branch_manager_can_store_confidential_identifier(): void
+    {
+        $payload = [
+            ...$this->validPayload(),
+            'dimensions' => [
+                'transaction_reference',
+            ],
+        ];
+
+        $request = $this->request(
+            $payload,
+            EmployeeRole::BRANCH_MANAGER,
+        );
+
+        $validator = $this->validatorFor(
+            $request,
+            $payload,
+        );
+
+        $this->assertFalse($validator->fails());
+    }
+
+    public function test_analyst_cannot_filter_by_confidential_identifier(): void
+    {
+        $payload = [
+            ...$this->validPayload(),
+            'filters' => [
+                [
+                    'dimension' => 'transaction_reference',
+                    'operator' => 'equals',
+                    'value' => 'TXN-EXAMPLE',
+                ],
+            ],
+        ];
+
+        $request = $this->request(
+            $payload,
+            EmployeeRole::BRANCH_ANALYST,
+        );
+
+        $validator = $this->validatorFor(
+            $request,
+            $payload,
+        );
+
+        $this->assertTrue($validator->fails());
+
+        $this->assertArrayHasKey(
+            'fields',
+            $validator->errors()->toArray(),
+        );
+    }
+
     /**
      * @param  array<string, mixed>  $payload
      */

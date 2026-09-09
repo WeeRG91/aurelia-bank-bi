@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Analytics;
 
 use App\Analytics\Datasets\DatasetAccess;
 use App\Analytics\Datasets\DatasetDefinition;
+use App\Analytics\Datasets\DatasetFieldAccess;
 use App\Analytics\Datasets\DimensionDefinition;
 use App\Analytics\Datasets\MeasureDefinition;
 use App\Analytics\Filters\DimensionFilterRules;
@@ -14,6 +15,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Resources\Analytics\SavedReportResource;
 use App\Models\SavedReport;
 use App\Models\User;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\View\View;
@@ -27,9 +29,10 @@ final class ReportBuilderController extends Controller
     public function __invoke(
         Request $request,
         DatasetAccess $datasetAccess,
+        DatasetFieldAccess $fieldAccess,
         DimensionFilterRules $filterRules,
         ?SavedReport $savedReport = null,
-    ): View {
+    ): View|RedirectResponse {
         /** @var User $user */
         $user = $request->user();
 
@@ -46,6 +49,20 @@ final class ReportBuilderController extends Controller
                 403,
             );
 
+            if (
+                ! $fieldAccess->canUseDefinition(
+                    $user,
+                    $savedReport->dataset,
+                    $savedReport->definition,
+                )
+            ) {
+                return to_route('analytics.saved-reports.index')
+                    ->with(
+                        'error',
+                        'This report contains fields that are no longer available to your role. Create a new report using the currently permitted fields.',
+                    );
+            }
+
             $initialReport = (new SavedReportResource($savedReport))
                 ->resolve($request);
         }
@@ -55,7 +72,7 @@ final class ReportBuilderController extends Controller
         );
 
         $datasets = array_map(
-            static fn (DatasetDefinition $dataset): array => [
+            fn (DatasetDefinition $dataset): array => [
                 'key' => $dataset->key->value,
                 'label' => $dataset->label,
                 'description' => $dataset->description,
@@ -74,7 +91,10 @@ final class ReportBuilderController extends Controller
                             $filterRules->allowedOperators($dimension),
                         ),
                     ],
-                    $dataset->dimensions(),
+                    $fieldAccess->dimensionsFor(
+                        $user,
+                        $dataset->key,
+                    ),
                 ),
                 'measures' => array_map(
                     static fn (MeasureDefinition $measure): array => [
@@ -87,7 +107,10 @@ final class ReportBuilderController extends Controller
                         'currencyDimension' => $measure->currencyDimension,
                         'requiredDimensions' => $measure->requiredContextDimensions(),
                     ],
-                    $dataset->measures(),
+                    $fieldAccess->measuresFor(
+                        $user,
+                        $dataset->key,
+                    ),
                 ),
             ],
             $datasetAccess->discoverableTo($user),

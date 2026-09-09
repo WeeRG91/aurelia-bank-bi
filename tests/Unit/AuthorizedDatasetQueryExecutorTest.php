@@ -4,6 +4,7 @@ namespace Tests\Unit;
 
 use App\Analytics\Datasets\DatasetAccess;
 use App\Analytics\Datasets\DatasetDefinition;
+use App\Analytics\Datasets\DatasetFieldAccess;
 use App\Analytics\Datasets\DatasetKey;
 use App\Analytics\Datasets\DatasetRegistry;
 use App\Analytics\Datasets\DatasetStatus;
@@ -55,7 +56,7 @@ class AuthorizedDatasetQueryExecutorTest extends TestCase
             )
             ->willReturn([
                 (object) [
-                    'transaction_reference' => 'TXN-EXAMPLE',
+                    'transaction_type' => 'transfer',
                     'currency' => 'EUR',
                 ],
             ]);
@@ -89,7 +90,7 @@ class AuthorizedDatasetQueryExecutorTest extends TestCase
             new DatasetQuery(
                 dataset: DatasetKey::TRANSACTIONS,
                 dimensions: [
-                    'transaction_reference',
+                    'transaction_type',
                     'currency',
                 ],
             ),
@@ -97,8 +98,8 @@ class AuthorizedDatasetQueryExecutorTest extends TestCase
 
         $this->assertCount(1, $rows);
         $this->assertSame(
-            'TXN-EXAMPLE',
-            $rows[0]->transaction_reference,
+            'transfer',
+            $rows[0]->transaction_type,
         );
     }
 
@@ -127,6 +128,37 @@ class AuthorizedDatasetQueryExecutorTest extends TestCase
         );
     }
 
+    /**
+     * @throws Throwable
+     */
+    public function test_field_denial_never_requests_a_database_connection(): void
+    {
+        $database = $this->createMock(DatabaseManager::class);
+
+        $database->expects($this->never())
+            ->method('connection');
+
+        $this->expectException(AuthorizationException::class);
+        $this->expectExceptionMessage(
+            'Dimension [transaction_reference] is not available for dataset [transactions].',
+        );
+
+        $this->executor(
+            $this->activeRegistry(),
+            $database,
+        )->executeFor(
+            $this->user(
+                EmployeeRole::BRANCH_ANALYST,
+                branchId: 42,
+            ),
+            new TransactionDatasetSource,
+            new DatasetQuery(
+                dataset: DatasetKey::TRANSACTIONS,
+                dimensions: ['transaction_reference'],
+            ),
+        );
+    }
+
     private function executor(
         DatasetRegistry $registry,
         DatabaseManager $database,
@@ -135,6 +167,10 @@ class AuthorizedDatasetQueryExecutorTest extends TestCase
 
         $compiler = new AuthorizedDatasetQueryCompiler(
             $access,
+            new DatasetFieldAccess(
+                $registry,
+                $access,
+            ),
             new DatasetRowScopeResolver($access),
             new DatasetQueryCompiler(
                 new FilterCompiler,

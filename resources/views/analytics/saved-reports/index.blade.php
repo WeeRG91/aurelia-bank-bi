@@ -198,20 +198,22 @@
 
                                     {{-- Secondary actions --}}
                                     <div class="flex items-center justify-end gap-4 border-t border-slate-100 pt-2">
-                                        <form
-                                            method="POST"
-                                            action="{{ route('analytics.saved-reports.duplicate', $report) }}"
-                                            onsubmit="return confirm('Duplicate this report?')"
-                                        >
-                                            @csrf
-
-                                            <button
-                                                type="submit"
-                                                class="text-xs font-semibold text-blue-700 transition hover:text-blue-900 hover:underline"
+                                        @can('duplicate', $report)
+                                            <form
+                                                method="POST"
+                                                action="{{ route('analytics.saved-reports.duplicate', $report) }}"
+                                                onsubmit="return confirm('Duplicate this report?')"
                                             >
-                                                Duplicate
-                                            </button>
-                                        </form>
+                                                @csrf
+
+                                                <button
+                                                    type="submit"
+                                                    class="text-xs font-semibold text-blue-700 transition hover:text-blue-900 hover:underline"
+                                                >
+                                                    Duplicate
+                                                </button>
+                                            </form>
+                                        @endcan
 
                                         <form
                                             method="POST"

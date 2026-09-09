@@ -44,7 +44,7 @@ class ReportPreviewControllerTest extends TestCase
             )
             ->willReturn([
                 (object) [
-                    'transaction_reference' => 'TXN-EXAMPLE',
+                    'transaction_type' => 'transfer',
                 ],
             ]);
 
@@ -75,7 +75,7 @@ class ReportPreviewControllerTest extends TestCase
                 route('analytics.report-preview'),
                 [
                     'dataset' => 'transactions',
-                    'dimensions' => ['transaction_reference'],
+                    'dimensions' => ['transaction_type'],
                     'measures' => [],
                     'filters' => [
                         [
@@ -93,12 +93,12 @@ class ReportPreviewControllerTest extends TestCase
             ->assertJson([
                 'data' => [
                     [
-                        'transaction_reference' => 'TXN-EXAMPLE',
+                        'transaction_type' => 'transfer',
                     ],
                 ],
                 'meta' => [
                     'dataset' => 'transactions',
-                    'dimensions' => ['transaction_reference'],
+                    'dimensions' => ['transaction_type'],
                     'measures' => [],
                     'rowCount' => 1,
                     'limit' => 100,
@@ -127,7 +127,7 @@ class ReportPreviewControllerTest extends TestCase
                 route('analytics.report-preview'),
                 [
                     'dataset' => 'transactions',
-                    'dimensions' => ['transaction_reference'],
+                    'dimensions' => ['transaction_type'],
                     'measures' => [],
                 ],
             )

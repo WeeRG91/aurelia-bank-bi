@@ -3,6 +3,7 @@
 namespace App\Policies;
 
 use App\Analytics\Datasets\DatasetAccess;
+use App\Analytics\Datasets\DatasetFieldAccess;
 use App\Analytics\Exports\ReportExportStatus;
 use App\Models\ReportExport;
 use App\Models\User;
@@ -11,6 +12,7 @@ final readonly class ReportExportPolicy
 {
     public function __construct(
         private DatasetAccess $datasetAccess,
+        private DatasetFieldAccess $fieldAccess,
     ) {}
 
     public function before(User $user): ?bool
@@ -40,15 +42,23 @@ final readonly class ReportExportPolicy
 
     public function download(User $user, ReportExport $reportExport): bool
     {
+        $definition = $reportExport->definition;
+
         return $this->isOwner($user, $reportExport)
             && $reportExport->status === ReportExportStatus::COMPLETED
             && $reportExport->expires_at?->isFuture() === true
             && is_string($reportExport->disk)
             && is_string($reportExport->path)
             && is_string($reportExport->filename)
+            && is_array($definition)
             && $this->datasetAccess->canUse(
                 $user,
                 $reportExport->dataset,
+            )
+            && $this->fieldAccess->canUseDefinition(
+                $user,
+                $reportExport->dataset,
+                $definition,
             );
     }
 

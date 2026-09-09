@@ -3,6 +3,7 @@
 namespace App\Policies;
 
 use App\Analytics\Datasets\DatasetAccess;
+use App\Analytics\Datasets\DatasetFieldAccess;
 use App\Models\SavedReport;
 use App\Models\User;
 
@@ -10,6 +11,7 @@ final readonly class SavedReportPolicy
 {
     public function __construct(
         private DatasetAccess $datasetAccess,
+        private DatasetFieldAccess $fieldAccess,
     ) {}
 
     public function before(User $user): ?bool
@@ -79,11 +81,24 @@ final readonly class SavedReportPolicy
 
     public function export(User $user, SavedReport $savedReport): bool
     {
+        $definition = $savedReport->definition;
+
         return $this->isOwner($user, $savedReport)
+            && is_array($definition)
             && $this->datasetAccess->canUse(
                 $user,
                 $savedReport->dataset,
+            )
+            && $this->fieldAccess->canUseDefinition(
+                $user,
+                $savedReport->dataset,
+                $definition,
             );
+    }
+
+    public function duplicate(User $user, SavedReport $savedReport): bool
+    {
+        return $this->export($user, $savedReport);
     }
 
     public function schedule(User $user, SavedReport $savedReport): bool

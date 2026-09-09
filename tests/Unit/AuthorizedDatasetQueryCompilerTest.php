@@ -4,9 +4,12 @@ namespace Tests\Unit;
 
 use App\Analytics\Datasets\DatasetAccess;
 use App\Analytics\Datasets\DatasetDefinition;
+use App\Analytics\Datasets\DatasetFieldAccess;
 use App\Analytics\Datasets\DatasetKey;
 use App\Analytics\Datasets\DatasetRegistry;
 use App\Analytics\Datasets\DatasetStatus;
+use App\Analytics\Filters\FilterCondition;
+use App\Analytics\Filters\FilterOperator;
 use App\Analytics\Queries\Authorization\AuthorizedDatasetQueryCompiler;
 use App\Analytics\Queries\Authorization\DatasetRowScopeResolver;
 use App\Analytics\Queries\Compilation\FilterCompiler;
@@ -28,7 +31,7 @@ class AuthorizedDatasetQueryCompilerTest extends TestCase
 
         $query = new DatasetQuery(
             dataset: DatasetKey::TRANSACTIONS,
-            dimensions: ['transaction_reference', 'currency'],
+            dimensions: ['transaction_type', 'currency'],
         );
 
         $compiled = $compiler->compileFor(
@@ -116,6 +119,87 @@ class AuthorizedDatasetQueryCompilerTest extends TestCase
         );
     }
 
+    public function test_branch_analyst_cannot_compile_confidential_identifier(): void
+    {
+        $compiler = $this->compiler(
+            $this->transactionRegistry(DatasetStatus::ACTIVE),
+        );
+
+        $this->expectException(AuthorizationException::class);
+        $this->expectExceptionMessage(
+            'Dimension [transaction_reference] is not available for dataset [transactions].',
+        );
+
+        $compiler->compileFor(
+            $this->user(
+                EmployeeRole::BRANCH_ANALYST,
+                branchId: 42,
+            ),
+            new TransactionDatasetSource,
+            new DatasetQuery(
+                dataset: DatasetKey::TRANSACTIONS,
+                dimensions: ['transaction_reference'],
+            ),
+        );
+    }
+
+    public function test_branch_analyst_cannot_filter_by_confidential_identifier(): void
+    {
+        $compiler = $this->compiler(
+            $this->transactionRegistry(DatasetStatus::ACTIVE),
+        );
+
+        $this->expectException(AuthorizationException::class);
+        $this->expectExceptionMessage(
+            'Filter dimension [transaction_reference] is not available for dataset [transactions].',
+        );
+
+        $compiler->compileFor(
+            $this->user(
+                EmployeeRole::BRANCH_ANALYST,
+                branchId: 42,
+            ),
+            new TransactionDatasetSource,
+            new DatasetQuery(
+                dataset: DatasetKey::TRANSACTIONS,
+                dimensions: ['currency'],
+                filters: [
+                    new FilterCondition(
+                        dataset: DatasetKey::TRANSACTIONS,
+                        dimension: 'transaction_reference',
+                        operator: FilterOperator::EQUALS,
+                        value: 'TXN-EXAMPLE',
+                    ),
+                ],
+            ),
+        );
+    }
+
+    public function test_branch_analyst_can_compile_confidential_financial_measure(): void
+    {
+        $compiled = $this->compiler(
+            $this->transactionRegistry(DatasetStatus::ACTIVE),
+        )->compileFor(
+            $this->user(
+                EmployeeRole::BRANCH_ANALYST,
+                branchId: 42,
+            ),
+            new TransactionDatasetSource,
+            new DatasetQuery(
+                dataset: DatasetKey::TRANSACTIONS,
+                dimensions: ['currency'],
+                measures: ['total_amount'],
+            ),
+        );
+
+        $this->assertStringContainsString(
+            'SUM(transactions.amount) AS total_amount',
+            $compiled->sql,
+        );
+
+        $this->assertSame([42, 100], $compiled->bindings);
+    }
+
     private function compiler(
         DatasetRegistry $registry,
     ): AuthorizedDatasetQueryCompiler {
@@ -123,6 +207,10 @@ class AuthorizedDatasetQueryCompilerTest extends TestCase
 
         return new AuthorizedDatasetQueryCompiler(
             $access,
+            new DatasetFieldAccess(
+                $registry,
+                $access,
+            ),
             new DatasetRowScopeResolver($access),
             new DatasetQueryCompiler(
                 new FilterCompiler,

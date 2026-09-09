@@ -3,6 +3,7 @@
 namespace App\Analytics\Queries\Authorization;
 
 use App\Analytics\Datasets\DatasetAccess;
+use App\Analytics\Datasets\DatasetFieldAccess;
 use App\Analytics\Queries\CompiledQuery;
 use App\Analytics\Queries\DatasetQuery;
 use App\Analytics\Queries\DatasetQueryCompiler;
@@ -15,6 +16,7 @@ final readonly class AuthorizedDatasetQueryCompiler
 {
     public function __construct(
         private DatasetAccess $datasetAccess,
+        private DatasetFieldAccess $fieldAccess,
         private DatasetRowScopeResolver $scopeResolver,
         private DatasetQueryCompiler $queryCompiler,
     ) {}
@@ -36,6 +38,8 @@ final readonly class AuthorizedDatasetQueryCompiler
             );
         }
 
+        $this->authorizeFields($user, $query);
+
         $scope = $this->scopeResolver->resolve(
             $user,
             $query->dataset,
@@ -52,5 +56,52 @@ final readonly class AuthorizedDatasetQueryCompiler
             $query,
             $scope,
         );
+    }
+
+    private function authorizeFields(
+        User $user,
+        DatasetQuery $query,
+    ): void {
+        foreach ($query->dimensions as $dimension) {
+            if (
+                ! $this->fieldAccess->canUseDimension(
+                    $user,
+                    $query->dataset,
+                    $dimension,
+                )
+            ) {
+                throw new AuthorizationException(
+                    "Dimension [{$dimension}] is not available for dataset [{$query->dataset->value}].",
+                );
+            }
+        }
+
+        foreach ($query->measures as $measure) {
+            if (
+                ! $this->fieldAccess->canUseMeasure(
+                    $user,
+                    $query->dataset,
+                    $measure,
+                )
+            ) {
+                throw new AuthorizationException(
+                    "Measure [{$measure}] is not available for dataset [{$query->dataset->value}].",
+                );
+            }
+        }
+
+        foreach ($query->filters as $filter) {
+            if (
+                ! $this->fieldAccess->canUseDimension(
+                    $user,
+                    $query->dataset,
+                    $filter->dimension,
+                )
+            ) {
+                throw new AuthorizationException(
+                    "Filter dimension [{$filter->dimension}] is not available for dataset [{$query->dataset->value}].",
+                );
+            }
+        }
     }
 }

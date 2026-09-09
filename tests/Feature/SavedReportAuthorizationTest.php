@@ -136,12 +136,21 @@ class SavedReportAuthorizationTest extends TestCase
             employeeId: 10,
         );
 
-        $this->assertTrue(
-            Gate::forUser($owner)->allows(
-                'export',
-                $this->report(ownerEmployeeId: 10),
-            ),
-        );
+        $report = $this->report(ownerEmployeeId: 10);
+
+        foreach ([
+            'export',
+            'schedule',
+            'duplicate',
+        ] as $ability) {
+            $this->assertTrue(
+                Gate::forUser($owner)->allows(
+                    $ability,
+                    $report,
+                ),
+                "Expected owner to be allowed to {$ability} the report.",
+            );
+        }
     }
 
     public function test_owner_cannot_export_after_losing_dataset_access(): void
@@ -156,6 +165,42 @@ class SavedReportAuthorizationTest extends TestCase
                 'export',
                 $this->report(ownerEmployeeId: 10),
             ),
+        );
+    }
+
+    public function test_owner_cannot_use_report_with_forbidden_fields(): void
+    {
+        $owner = $this->user(
+            EmployeeRole::BRANCH_ANALYST,
+            employeeId: 10,
+            branchId: 100,
+        );
+
+        $report = $this->report(ownerEmployeeId: 10);
+
+        $report->forceFill([
+            'definition' => [
+                'dimensions' => [
+                    'transaction_reference',
+                ],
+                'measures' => [],
+                'filters' => [],
+                'relative_date' => null,
+                'limit' => 100,
+                'visualization' => null,
+            ],
+        ]);
+
+        $this->assertFalse(
+            Gate::forUser($owner)->allows('export', $report),
+        );
+
+        $this->assertFalse(
+            Gate::forUser($owner)->allows('schedule', $report),
+        );
+
+        $this->assertFalse(
+            Gate::forUser($owner)->allows('duplicate', $report),
         );
     }
 
@@ -190,6 +235,19 @@ class SavedReportAuthorizationTest extends TestCase
             'id' => 500,
             'owner_employee_id' => $ownerEmployeeId,
             'dataset' => DatasetKey::TRANSACTIONS,
+            'definition' => [
+                'dimensions' => [
+                    'transaction_type',
+                    'currency',
+                ],
+                'measures' => [
+                    'total_amount',
+                ],
+                'filters' => [],
+                'relative_date' => null,
+                'limit' => 100,
+                'visualization' => null,
+            ],
         ]);
     }
 }

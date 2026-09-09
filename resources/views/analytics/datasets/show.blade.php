@@ -48,6 +48,21 @@
             </dd>
         </div>
 
+        <div
+            @class([
+                'mt-4 rounded-lg border p-4 text-sm',
+                'border-blue-200 bg-blue-50 text-blue-800' => ! $canInspectRegistry,
+                'border-violet-200 bg-violet-50 text-violet-800' => $canInspectRegistry,
+            ])
+        >
+            @if ($canInspectRegistry)
+                You are viewing the complete semantic metadata catalog for governance
+                and administration.
+            @else
+                This metadata view includes only fields currently available to your role.
+            @endif
+        </div>
+
         <section class="mt-10 border-t border-slate-200 pt-8">
             <h2 class="text-xl font-semibold">Dimensions</h2>
 
@@ -56,7 +71,7 @@
                 and filtering.
             </p>
 
-            @if ($dataset->dimensions() === [])
+            @if ($dimensions === [])
                 <div class="mt-6 rounded-lg bg-slate-50 p-4 text-sm text-slate-500">
                     No semantic dimensions have been defined for this dataset yet.
                 </div>
@@ -74,7 +89,7 @@
                         </thead>
 
                         <tbody class="divide-y divide-slate-100">
-                        @foreach ($dataset->dimensions() as $dimension)
+                        @foreach ($dimensions as $dimension)
                             <tr>
                                 <td class="px-4 py-4">
                                     <div class="font-medium">
@@ -87,16 +102,6 @@
 
                                     <div class="mt-2 max-w-md text-sm text-slate-500">
                                         {{ $dimension->description }}
-                                    </div>
-
-                                    <div class="mt-6 rounded-lg bg-slate-50 p-4">
-                                        <dt class="text-sm font-medium text-slate-500">
-                                            Dataset grain
-                                        </dt>
-
-                                        <dd class="mt-1 text-sm text-slate-900">
-                                            {{ $dataset->grain }}
-                                        </dd>
                                     </div>
                                 </td>
 
@@ -130,7 +135,7 @@
                 Governed numeric values available for aggregation and reporting.
             </p>
 
-            @if ($dataset->measures() === [])
+            @if ($measures === [])
                 <div class="mt-6 rounded-lg bg-slate-50 p-4 text-sm text-slate-500">
                     No semantic measures have been defined for this dataset yet.
                 </div>
@@ -148,7 +153,7 @@
                         </thead>
 
                         <tbody class="divide-y divide-slate-100">
-                        @foreach ($dataset->measures() as $measure)
+                        @foreach ($measures as $measure)
                             <tr>
                                 <td class="px-4 py-4">
                                     <div class="font-medium">

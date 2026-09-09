@@ -3,6 +3,7 @@
 namespace App\Http\Requests\Analytics;
 
 use App\Analytics\Datasets\DatasetAccess;
+use App\Analytics\Datasets\DatasetFieldAccess;
 use App\Analytics\Datasets\DatasetKey;
 use App\Analytics\Datasets\DatasetRegistry;
 use App\Analytics\Datasets\FieldDataType;
@@ -177,6 +178,34 @@ class ReportPreviewRequest extends FormRequest
 
                 if ($dataset === null) {
                     return;
+                }
+
+                $user = $this->user();
+
+                if (
+                    $user instanceof User
+                    && ! app(DatasetFieldAccess::class)
+                        ->canUseDefinition(
+                            $user,
+                            $dataset->key,
+                            [
+                                'dimensions' => $dimensions,
+                                'measures' => $measures,
+                                'filters' => is_array(
+                                    $this->input('filters', []),
+                                )
+                                    ? $this->input('filters', [])
+                                    : [],
+                                'relative_date' => $this->input(
+                                    'relative_date',
+                                ),
+                            ],
+                        )
+                ) {
+                    $validator->errors()->add(
+                        'fields',
+                        'One or more report fields are not available to your role.',
+                    );
                 }
 
                 foreach ($dimensions as $index => $dimensionKey) {

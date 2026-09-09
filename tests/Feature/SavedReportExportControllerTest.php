@@ -27,7 +27,7 @@ class SavedReportExportControllerTest extends TestCase
             'dataset' => DatasetKey::TRANSACTIONS,
             'definition_version' => 1,
             'definition' => [
-                'dimensions' => ['transaction_reference'],
+                'dimensions' => ['transaction_type'],
                 'measures' => [],
                 'filters' => [],
                 'relative_date' => null,
@@ -120,7 +120,7 @@ class SavedReportExportControllerTest extends TestCase
             )
             ->willReturn([
                 (object) [
-                    'transaction_reference' => 'TXN-BRANCH-42',
+                    'transaction_type' => 'transfer',
                 ],
             ]);
 
@@ -172,7 +172,7 @@ class SavedReportExportControllerTest extends TestCase
         );
 
         $this->assertStringContainsString(
-            'TXN-BRANCH-42',
+            'transfer',
             $response->getContent(),
         );
     }

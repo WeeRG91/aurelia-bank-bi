@@ -3,6 +3,7 @@
 namespace App\Console\Commands;
 
 use App\Analytics\Datasets\DatasetAccess;
+use App\Analytics\Datasets\DatasetFieldAccess;
 use App\Analytics\Exports\ReportExportStatus;
 use App\Analytics\Scheduling\NextReportRunCalculator;
 use App\Analytics\Scheduling\ScheduledReportStatus;
@@ -30,6 +31,7 @@ class DispatchScheduledReports extends Command
     public function handle(
         NextReportRunCalculator $calculator,
         DatasetAccess $datasetAccess,
+        DatasetFieldAccess $fieldAccess,
     ): int {
         $limit = max(
             1,
@@ -56,6 +58,7 @@ class DispatchScheduledReports extends Command
                 $now,
                 $calculator,
                 $datasetAccess,
+                $fieldAccess,
             );
 
             if ($dispatched) {
@@ -78,14 +81,16 @@ class DispatchScheduledReports extends Command
         int $scheduleId,
         CarbonImmutable $now,
         NextReportRunCalculator $calculator,
-        DatasetAccess $datasetAccess
+        DatasetAccess $datasetAccess,
+        DatasetFieldAccess $fieldAccess,
     ): bool {
         return DB::transaction(
             function () use (
                 $scheduleId,
                 $now,
-                $calculator
-
+                $calculator,
+                $datasetAccess,
+                $fieldAccess,
             ): bool {
                 $schedule = ScheduledReport::query()
                     ->whereKey($scheduleId)
@@ -118,6 +123,26 @@ class DispatchScheduledReports extends Command
                     return $this->pauseInvalidSchedule(
                         $schedule,
                         'Its report owner or user account is unavailable.',
+                    );
+                }
+
+                $definition = $savedReport->definition;
+
+                if (
+                    ! is_array($definition)
+                    || ! $datasetAccess->canUse(
+                        $user,
+                        $savedReport->dataset,
+                    )
+                    || ! $fieldAccess->canUseDefinition(
+                        $user,
+                        $savedReport->dataset,
+                        $definition,
+                    )
+                ) {
+                    return $this->pauseInvalidSchedule(
+                        $schedule,
+                        'Its dataset or one or more report fields are no longer available.',
                     );
                 }
 

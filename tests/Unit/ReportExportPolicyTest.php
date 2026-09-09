@@ -3,6 +3,7 @@
 namespace Tests\Unit;
 
 use App\Analytics\Datasets\DatasetAccess;
+use App\Analytics\Datasets\DatasetFieldAccess;
 use App\Analytics\Datasets\DatasetKey;
 use App\Analytics\Datasets\DatasetRegistry;
 use App\Analytics\Exports\ExportFormat;
@@ -104,10 +105,40 @@ final class ReportExportPolicyTest extends TestCase
         );
     }
 
+    public function test_download_is_denied_after_field_access_is_lost(): void
+    {
+        $owner = $this->user(employeeId: 10);
+        $export = $this->export(ownerEmployeeId: 10);
+
+        $export->forceFill([
+            'definition' => [
+                'dimensions' => [
+                    'transaction_reference',
+                ],
+                'measures' => [],
+                'filters' => [],
+                'relative_date' => null,
+                'limit' => 100,
+                'visualization' => null,
+            ],
+        ]);
+
+        $this->assertFalse(
+            $this->policy()->download($owner, $export),
+        );
+    }
+
     private function policy(): ReportExportPolicy
     {
+        $registry = new DatasetRegistry;
+        $datasetAccess = new DatasetAccess($registry);
+
         return new ReportExportPolicy(
-            new DatasetAccess(new DatasetRegistry),
+            $datasetAccess,
+            new DatasetFieldAccess(
+                $registry,
+                $datasetAccess,
+            ),
         );
     }
 
@@ -119,6 +150,19 @@ final class ReportExportPolicyTest extends TestCase
         return (new ReportExport)->forceFill([
             'requested_by_employee_id' => $ownerEmployeeId,
             'dataset' => DatasetKey::TRANSACTIONS,
+            'definition' => [
+                'dimensions' => [
+                    'transaction_type',
+                    'currency',
+                ],
+                'measures' => [
+                    'total_amount',
+                ],
+                'filters' => [],
+                'relative_date' => null,
+                'limit' => 100,
+                'visualization' => null,
+            ],
             'format' => ExportFormat::CSV,
             'status' => $status,
             'disk' => 'report_exports',
