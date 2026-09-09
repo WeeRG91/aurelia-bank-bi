@@ -5,6 +5,11 @@ namespace App\Jobs;
 use App\Analytics\Exports\ReportExportGenerator;
 use App\Analytics\Exports\ReportExportStatus;
 use App\Models\ReportExport;
+use App\Models\ScheduledReport;
+use App\Models\User;
+use App\Notifications\ScheduledReportExportFailed;
+use App\Notifications\ScheduledReportExportReady;
+use Carbon\CarbonImmutable;
 use DateInvalidTimeZoneException;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
@@ -63,7 +68,10 @@ class GenerateReportExport implements ShouldQueue
         }
 
         $export = ReportExport::query()
-            ->with('requestedBy.user')
+            ->with([
+                'requestedBy.user',
+                'scheduledReport',
+            ])
             ->findOrFail($this->exportId);
 
         try {
@@ -134,12 +142,45 @@ class GenerateReportExport implements ShouldQueue
 
             throw $exception;
         }
+
+        $this->queueScheduledNotification($export);
+    }
+
+    private function queueScheduledNotification(ReportExport $export): void
+    {
+        $schedule = $export->scheduledReport;
+        $user = $export->requestedBy?->user;
+        $expiresAt = $export->expires_at;
+
+        if (
+            ! $schedule instanceof ScheduledReport
+            || ! $user instanceof User
+            || ! $expiresAt instanceof CarbonImmutable
+        ) {
+            return;
+        }
+
+        $user->notify(
+            new ScheduledReportExportReady(
+                exportId: (string) $export->getKey(),
+                reportName: $schedule->name,
+                format: $export->format->value,
+                rowCount: $export->row_count ?? 0,
+                expiresAt: $expiresAt
+                    ->setTimezone($schedule->timezone)
+                    ->format('Y-m-d H:i T'),
+            ),
+        );
     }
 
     public function failed(
         ?Throwable $exception
     ): void {
         $export = ReportExport::query()
+            ->with([
+                'requestedBy.user',
+                'scheduledReport',
+            ])
             ->find($this->exportId);
 
         if (
@@ -162,6 +203,21 @@ class GenerateReportExport implements ShouldQueue
                 '',
             ),
         ])->save();
+
+        $schedule = $export->scheduledReport;
+        $user = $export->requestedBy?->user;
+
+        if (
+            $schedule instanceof ScheduledReport
+            && $user instanceof User
+        ) {
+            $user->notify(
+                new ScheduledReportExportFailed(
+                    exportId: (string) $export->getKey(),
+                    reportName: $schedule->name,
+                ),
+            );
+        }
     }
 
     /**
