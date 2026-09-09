@@ -66,6 +66,15 @@
                     </a>
                 @endcan
 
+                @can('viewAny', \App\Models\ScheduledReport::class)
+                    <a
+                        href="{{ route('analytics.scheduled-reports.index') }}"
+                        class="text-sm font-medium text-slate-700 hover:text-amber-700"
+                    >
+                        My Schedules
+                    </a>
+                @endcan
+
                 <a
                     href="{{ route('profile') }}"
                     class="text-sm font-medium text-slate-700 hover:text-amber-700"

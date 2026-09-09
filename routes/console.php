@@ -17,3 +17,8 @@ Schedule::command('horizon:snapshot')
     ->everyFiveMinutes()
     ->withoutOverlapping()
     ->onOneServer();
+
+Schedule::command('reports:dispatch-scheduled')
+    ->everyMinute()
+    ->withoutOverlapping()
+    ->onOneServer();

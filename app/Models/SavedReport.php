@@ -41,6 +41,14 @@ final class SavedReport extends Model
     }
 
     /**
+     * @return HasMany<ScheduledReport, $this>
+     */
+    public function schedules(): HasMany
+    {
+        return $this->hasMany(ScheduledReport::class);
+    }
+
+    /**
      * @return array<string, string>
      */
     protected function casts(): array

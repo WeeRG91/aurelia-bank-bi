@@ -12,6 +12,9 @@ use App\Http\Controllers\Analytics\SavedReportExportController;
 use App\Http\Controllers\Analytics\SavedReportRestoreController;
 use App\Http\Controllers\Analytics\SavedReportStoreController;
 use App\Http\Controllers\Analytics\SavedReportUpdateController;
+use App\Http\Controllers\Analytics\ScheduledReportController;
+use App\Http\Controllers\Analytics\ScheduledReportStatusController;
+use App\Http\Controllers\Analytics\ScheduledReportStoreController;
 use App\Http\Controllers\Auth\AuthenticatedSessionController;
 use App\Http\Controllers\BranchController;
 use App\Http\Controllers\DashboardController;
@@ -71,6 +74,9 @@ Route::middleware(['auth', 'active.employee'])->group(function (): void {
             Route::post('/saved-reports/{savedReport}/exports', QueuedReportExportController::class)
                 ->whereNumber('savedReport')
                 ->name('saved-reports.exports.store');
+            Route::post('/saved-reports/{savedReport}/schedules', ScheduledReportStoreController::class)
+                ->whereNumber('savedReport')
+                ->name('saved-reports.schedules.store');
             Route::put('/saved-reports/{savedReport}', SavedReportUpdateController::class)
                 ->whereNumber('savedReport')
                 ->name('saved-reports.update');
@@ -85,6 +91,18 @@ Route::middleware(['auth', 'active.employee'])->group(function (): void {
                 ->name('report-exports.index');
             Route::get('/report-exports/{reportExport}/download', [ReportExportController::class, 'download'])
                 ->name('report-exports.download');
+
+            Route::get('/scheduled-reports', [ScheduledReportController::class, 'index'])
+                ->name('scheduled-reports.index');
+            Route::get('/saved-reports/{savedReport}/schedules/create', [ScheduledReportController::class, 'create'])
+                ->whereNumber('savedReport')
+                ->name('saved-reports.schedules.create');
+            Route::patch('/scheduled-reports/{scheduledReport}/pause', [ScheduledReportStatusController::class, 'pause'])
+                ->whereNumber('scheduledReport')
+                ->name('scheduled-reports.pause');
+            Route::patch('/scheduled-reports/{scheduledReport}/resume', [ScheduledReportStatusController::class, 'resume'])
+                ->whereNumber('scheduledReport')
+                ->name('scheduled-reports.resume');
 
             Route::get('/datasets', [DatasetCatalogController::class, 'index'])
                 ->name('datasets.index');

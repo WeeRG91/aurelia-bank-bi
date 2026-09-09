@@ -86,6 +86,11 @@ final readonly class SavedReportPolicy
             );
     }
 
+    public function schedule(User $user, SavedReport $savedReport): bool
+    {
+        return $this->export($user, $savedReport);
+    }
+
     private function isOwner(User $user, SavedReport $savedReport): bool
     {
         return $user->employee?->getKey() === $savedReport->owner_employee_id;

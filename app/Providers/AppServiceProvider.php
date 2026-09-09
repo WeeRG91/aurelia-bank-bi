@@ -6,10 +6,12 @@ use App\Models\Branch;
 use App\Models\Employee;
 use App\Models\ReportExport;
 use App\Models\SavedReport;
+use App\Models\ScheduledReport;
 use App\Policies\BranchPolicy;
 use App\Policies\EmployeePolicy;
 use App\Policies\ReportExportPolicy;
 use App\Policies\SavedReportPolicy;
+use App\Policies\ScheduledReportPolicy;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\ServiceProvider;
 
@@ -32,5 +34,6 @@ class AppServiceProvider extends ServiceProvider
         Gate::policy(Employee::class, EmployeePolicy::class);
         Gate::policy(SavedReport::class, SavedReportPolicy::class);
         Gate::policy(ReportExport::class, ReportExportPolicy::class);
+        Gate::policy(ScheduledReport::class, ScheduledReportPolicy::class);
     }
 }

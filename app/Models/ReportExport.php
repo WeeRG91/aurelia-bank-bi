@@ -27,6 +27,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
     'started_at',
     'finished_at',
     'expires_at',
+    'scheduled_report_id',
 ])]
 class ReportExport extends Model
 {
@@ -46,6 +47,14 @@ class ReportExport extends Model
     public function requestedBy(): BelongsTo
     {
         return $this->belongsTo(Employee::class, 'requested_by_employee_id');
+    }
+
+    /**
+     * @return BelongsTo<ScheduledReport, $this>
+     */
+    public function scheduledReport(): BelongsTo
+    {
+        return $this->belongsTo(ScheduledReport::class);
     }
 
     /**

@@ -58,7 +58,9 @@
                     <th class="px-6 py-3 font-semibold">Definition</th>
                     <th class="px-6 py-3 font-semibold">Version</th>
                     <th class="px-6 py-3 font-semibold">Updated</th>
-                    <th class="px-6 py-3 text-right font-semibold">Actions</th>
+                    <th class="w-96 px-6 py-3 text-right font-semibold">
+                        Actions
+                    </th>
                 </tr>
                 </thead>
 
@@ -125,80 +127,108 @@
                                     </button>
                                 </form>
                             @else
-                                @can('export', $report)
-                                    <p class="mb-2 text-xs text-slate-500">
-                                        Export up to
-                                        {{ number_format((int) ($report->definition['limit'] ?? 100)) }}
-                                        result rows
-                                    </p>
-                                @endcan
-                                <div class="flex flex-wrap items-center justify-end gap-2">
+                                <div class="flex min-w-80 flex-col items-end gap-3">
+                                    {{-- Primary actions --}}
+                                    <div class="flex flex-wrap justify-end gap-2">
+                                        @can('update', $report)
+                                            <a
+                                                href="{{ route('analytics.report-builder', ['savedReport' => $report]) }}"
+                                                class="inline-flex items-center rounded-lg bg-slate-900 px-3 py-2 text-xs font-semibold text-white shadow-sm transition hover:bg-slate-700"
+                                            >
+                                                Edit report
+                                            </a>
+                                        @endcan
+
+                                        @can('schedule', $report)
+                                            <a
+                                                href="{{ route('analytics.saved-reports.schedules.create', $report) }}"
+                                                class="inline-flex items-center rounded-lg border border-violet-200 bg-violet-50 px-3 py-2 text-xs font-semibold text-violet-800 transition hover:bg-violet-100"
+                                            >
+                                                Schedule
+                                            </a>
+                                        @endcan
+                                    </div>
+
+                                    {{-- Export actions --}}
                                     @can('export', $report)
-                                        <form
-                                            method="POST"
-                                            action="{{ route('analytics.saved-reports.exports.store', $report) }}"
-                                        >
-                                            @csrf
+                                        <div class="flex flex-wrap items-center justify-end gap-2">
+                                            <span class="mr-1 text-xs font-medium text-slate-400">
+                                                Export
+                                            </span>
 
-                                            <input type="hidden" name="format" value="csv">
-
-                                            <button
-                                                type="submit"
-                                                class="rounded-md border border-emerald-200 bg-emerald-50 px-3 py-1.5 text-xs font-semibold text-emerald-800 hover:bg-emerald-100"
-                                                title="Download as CSV"
+                                            <form
+                                                method="POST"
+                                                action="{{ route('analytics.saved-reports.exports.store', $report) }}"
                                             >
-                                                Queue CSV
-                                            </button>
-                                        </form>
+                                                @csrf
 
-                                        <form
-                                            method="POST"
-                                            action="{{ route('analytics.saved-reports.exports.store', $report) }}"
-                                        >
-                                            @csrf
+                                                <input type="hidden" name="format" value="csv">
 
-                                            <input type="hidden" name="format" value="xlsx">
+                                                <button
+                                                    type="submit"
+                                                    class="rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-1.5 text-xs font-semibold text-emerald-800 transition hover:bg-emerald-100"
+                                                >
+                                                    CSV
+                                                </button>
+                                            </form>
 
-                                            <button
-                                                type="submit"
-                                                class="rounded-md border border-emerald-600 bg-emerald-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-emerald-700"
-                                                title="Download as Excel workbook"
+                                            <form
+                                                method="POST"
+                                                action="{{ route('analytics.saved-reports.exports.store', $report) }}"
                                             >
-                                                Queue Excel
-                                            </button>
-                                        </form>
+                                                @csrf
+
+                                                <input type="hidden" name="format" value="xlsx">
+
+                                                <button
+                                                    type="submit"
+                                                    class="rounded-lg border border-emerald-600 bg-emerald-600 px-3 py-1.5 text-xs font-semibold text-white shadow-sm transition hover:bg-emerald-700"
+                                                >
+                                                    Excel
+                                                </button>
+                                            </form>
+
+                                            <span class="text-xs text-slate-400">
+                                                up to
+                                                {{ number_format((int) ($report->definition['limit'] ?? 100)) }}
+                                                rows
+                                            </span>
+                                        </div>
                                     @endcan
 
-                                    <form
-                                        method="POST"
-                                        action="{{ route('analytics.saved-reports.duplicate', $report) }}"
-                                        onsubmit="return confirm('Duplicate this report?')"
-                                    >
-                                        @csrf
-
-                                        <button
-                                            type="submit"
-                                            class="px-2 py-1.5 text-sm font-medium text-blue-700 hover:underline"
+                                    {{-- Secondary actions --}}
+                                    <div class="flex items-center justify-end gap-4 border-t border-slate-100 pt-2">
+                                        <form
+                                            method="POST"
+                                            action="{{ route('analytics.saved-reports.duplicate', $report) }}"
+                                            onsubmit="return confirm('Duplicate this report?')"
                                         >
-                                            Duplicate
-                                        </button>
-                                    </form>
+                                            @csrf
 
-                                    <form
-                                        method="POST"
-                                        action="{{ route('analytics.saved-reports.destroy', $report) }}"
-                                        onsubmit="return confirm('Move this report to the recycle bin?')"
-                                    >
-                                        @csrf
-                                        @method('DELETE')
+                                            <button
+                                                type="submit"
+                                                class="text-xs font-semibold text-blue-700 transition hover:text-blue-900 hover:underline"
+                                            >
+                                                Duplicate
+                                            </button>
+                                        </form>
 
-                                        <button
-                                            type="submit"
-                                            class="px-2 py-1.5 text-sm font-medium text-red-700 hover:underline"
+                                        <form
+                                            method="POST"
+                                            action="{{ route('analytics.saved-reports.destroy', $report) }}"
+                                            onsubmit="return confirm('Move this report to the recycle bin?')"
                                         >
-                                            Delete
-                                        </button>
-                                    </form>
+                                            @csrf
+                                            @method('DELETE')
+
+                                            <button
+                                                type="submit"
+                                                class="text-xs font-semibold text-red-600 transition hover:text-red-800 hover:underline"
+                                            >
+                                                Delete
+                                            </button>
+                                        </form>
+                                    </div>
                                 </div>
                             @endif
                         </td>

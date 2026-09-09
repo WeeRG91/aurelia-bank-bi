@@ -61,6 +61,14 @@ class Employee extends Model
     }
 
     /**
+     * @return HasMany<ScheduledReport, $this>
+     */
+    public function createdScheduledReports(): HasMany
+    {
+        return $this->hasMany(ScheduledReport::class, 'created_by_employee_id');
+    }
+
+    /**
      * @return array<string, string>
      */
     public function casts(): array
