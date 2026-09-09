@@ -81,6 +81,15 @@
                 >
                     My profile
                 </a>
+
+                @can('viewAny', \App\Models\AnalyticsAuditEvent::class)
+                    <a
+                        href="{{ route('analytics.audit-events.index') }}"
+                        class="text-sm font-medium text-slate-700 hover:text-amber-700"
+                    >
+                        Audit Trail
+                    </a>
+                @endcan
             </nav>
 
             <div class="flex items-center gap-4">

@@ -2,10 +2,16 @@
 
 namespace App\Http\Controllers\Analytics;
 
+use App\Analytics\Auditing\AuditAction;
+use App\Analytics\Auditing\AuditContext;
+use App\Analytics\Auditing\AuditOutcome;
+use App\Analytics\Auditing\AuditSubjectType;
+use App\Analytics\Auditing\WebAuditRecorder;
 use App\Analytics\Datasets\DatasetKey;
 use App\Analytics\Exports\ReportExportGenerator;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Analytics\ExportSavedReportRequest;
+use App\Models\Employee;
 use App\Models\SavedReport;
 use App\Models\User;
 use Carbon\CarbonImmutable;
@@ -26,12 +32,22 @@ final class SavedReportExportController extends Controller
         ExportSavedReportRequest $request,
         SavedReport $savedReport,
         ReportExportGenerator $generator,
+        WebAuditRecorder $audit,
     ): Response {
         /** @var User $user */
         $user = $request->user();
 
         $dataset = $savedReport->dataset;
         $definition = $savedReport->definition;
+
+        /** @var Employee $employee */
+        $employee = $user->employee;
+
+        if (! $employee instanceof Employee) {
+            throw new LogicException(
+                'The authenticated user has no employee profile.',
+            );
+        }
 
         if (
             ! $dataset instanceof DatasetKey
@@ -43,12 +59,36 @@ final class SavedReportExportController extends Controller
         }
 
         $format = $request->exportFormat();
+        $startedAt = microtime(true);
 
         $file = $generator->generate(
             user: $user,
             dataset: $dataset,
             definition: $definition,
             format: $format,
+        );
+
+        $audit->record(
+            request: $request,
+            action: AuditAction::EXPORT_DOWNLOADED,
+            outcome: AuditOutcome::SUCCEEDED,
+            actor: $employee,
+            dataset: $dataset,
+            subjectType: AuditSubjectType::SAVED_REPORT,
+            subjectId: $savedReport->getKey(),
+            context: AuditContext::from([
+                'definition_version' => $savedReport
+                    ->definition_version,
+                'duration_ms' => max(
+                    0,
+                    (int) round(
+                        (microtime(true) - $startedAt) * 1_000,
+                    ),
+                ),
+                'file_size_bytes' => strlen($file->contents),
+                'format' => $format->value,
+                'row_count' => $file->rowCount,
+            ]),
         );
 
         $now = CarbonImmutable::now(

@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Analytics\AnalyticsAuditEventController;
 use App\Http\Controllers\Analytics\DatasetCatalogController;
 use App\Http\Controllers\Analytics\QueuedReportExportController;
 use App\Http\Controllers\Analytics\ReportBuilderController;
@@ -109,5 +110,10 @@ Route::middleware(['auth', 'active.employee'])->group(function (): void {
             Route::get('/datasets/{dataset}', [DatasetCatalogController::class, 'show'])
                 ->where('dataset', '[a-z_]+')
                 ->name('datasets.show');
+
+            Route::get(
+                '/audit-events',
+                [AnalyticsAuditEventController::class, 'index'],
+            )->name('audit-events.index');
         });
 });

@@ -2,9 +2,16 @@
 
 namespace Tests\Feature;
 
+use App\Analytics\Auditing\AuditAction;
+use App\Analytics\Auditing\AuditContext;
+use App\Analytics\Auditing\AuditOutcome;
+use App\Analytics\Auditing\AuditRecorder;
+use App\Analytics\Auditing\AuditSource;
+use App\Analytics\Auditing\AuditSubjectType;
 use App\Analytics\Datasets\DatasetKey;
 use App\Enums\EmployeeRole;
 use App\Enums\EmployeeStatus;
+use App\Models\AnalyticsAuditEvent;
 use App\Models\Employee;
 use App\Models\SavedReport;
 use App\Models\User;
@@ -138,6 +145,48 @@ class SavedReportExportControllerTest extends TestCase
         $this->app->instance(
             DatabaseManager::class,
             $database,
+        );
+
+        $audit = $this->createMock(AuditRecorder::class);
+
+        $audit->expects($this->once())
+            ->method('record')
+            ->with(
+                AuditAction::EXPORT_DOWNLOADED,
+                AuditOutcome::SUCCEEDED,
+                AuditSource::WEB,
+                $this->isInstanceOf(Employee::class),
+                DatasetKey::TRANSACTIONS,
+                AuditSubjectType::SAVED_REPORT,
+                500,
+                $this->callback(
+                    static function (AuditContext $context): bool {
+                        $values = $context->toArray();
+
+                        return $values['definition_version'] === 1
+                            && is_int($values['duration_ms'])
+                            && $values['duration_ms'] >= 0
+                            && $values['file_size_bytes'] > 0
+                            && $values['format'] === 'csv'
+                            && $values['row_count'] === 1;
+                    },
+                ),
+                $this->callback(
+                    static fn (?string $requestId): bool => is_string(
+                        $requestId,
+                    ) && preg_match(
+                        '/^[0-9a-f-]{36}$/',
+                        $requestId,
+                    ) === 1,
+                ),
+                '127.0.0.1',
+                $this->anything(),
+            )
+            ->willReturn(new AnalyticsAuditEvent);
+
+        $this->app->instance(
+            AuditRecorder::class,
+            $audit,
         );
 
         $response = $this->actingAs(

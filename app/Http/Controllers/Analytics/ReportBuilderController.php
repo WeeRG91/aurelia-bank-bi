@@ -2,6 +2,11 @@
 
 namespace App\Http\Controllers\Analytics;
 
+use App\Analytics\Auditing\AuditAction;
+use App\Analytics\Auditing\AuditContext;
+use App\Analytics\Auditing\AuditOutcome;
+use App\Analytics\Auditing\AuditSubjectType;
+use App\Analytics\Auditing\WebAuditRecorder;
 use App\Analytics\Datasets\DatasetAccess;
 use App\Analytics\Datasets\DatasetDefinition;
 use App\Analytics\Datasets\DatasetFieldAccess;
@@ -13,6 +18,7 @@ use App\Analytics\Time\RelativeDatePreset;
 use App\Analytics\Time\ReportingTimezone;
 use App\Http\Controllers\Controller;
 use App\Http\Resources\Analytics\SavedReportResource;
+use App\Models\Employee;
 use App\Models\SavedReport;
 use App\Models\User;
 use Illuminate\Http\RedirectResponse;
@@ -20,6 +26,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\View\View;
 use JsonException;
+use LogicException;
 
 final class ReportBuilderController extends Controller
 {
@@ -31,6 +38,7 @@ final class ReportBuilderController extends Controller
         DatasetAccess $datasetAccess,
         DatasetFieldAccess $fieldAccess,
         DimensionFilterRules $filterRules,
+        WebAuditRecorder $audit,
         ?SavedReport $savedReport = null,
     ): View|RedirectResponse {
         /** @var User $user */
@@ -39,15 +47,52 @@ final class ReportBuilderController extends Controller
         $initialReport = null;
 
         if ($savedReport !== null) {
-            Gate::authorize('view', $savedReport);
+            $employee = $user->employee;
 
-            abort_unless(
-                $datasetAccess->canUse(
+            if (! $employee instanceof Employee) {
+                throw new LogicException(
+                    'The authenticated user has no employee profile.',
+                );
+            }
+
+            if (Gate::forUser($user)->denies('view', $savedReport)) {
+                $audit->record(
+                    request: $request,
+                    action: AuditAction::REPORT_OPENED,
+                    outcome: AuditOutcome::DENIED,
+                    actor: $employee,
+                    dataset: $savedReport->dataset,
+                    subjectType: AuditSubjectType::SAVED_REPORT,
+                    subjectId: $savedReport->getKey(),
+                    context: AuditContext::from([
+                        'reason_code' => 'report_authorization_denied',
+                    ]),
+                );
+
+                abort(403);
+            }
+
+            if (
+                ! $datasetAccess->canUse(
                     $user,
                     $savedReport->dataset,
-                ),
-                403,
-            );
+                )
+            ) {
+                $audit->record(
+                    request: $request,
+                    action: AuditAction::REPORT_OPENED,
+                    outcome: AuditOutcome::DENIED,
+                    actor: $employee,
+                    dataset: $savedReport->dataset,
+                    subjectType: AuditSubjectType::SAVED_REPORT,
+                    subjectId: $savedReport->getKey(),
+                    context: AuditContext::from([
+                        'reason_code' => 'dataset_access_denied',
+                    ]),
+                );
+
+                abort(403);
+            }
 
             if (
                 ! $fieldAccess->canUseDefinition(
@@ -56,6 +101,19 @@ final class ReportBuilderController extends Controller
                     $savedReport->definition,
                 )
             ) {
+                $audit->record(
+                    request: $request,
+                    action: AuditAction::REPORT_OPENED,
+                    outcome: AuditOutcome::DENIED,
+                    actor: $employee,
+                    dataset: $savedReport->dataset,
+                    subjectType: AuditSubjectType::SAVED_REPORT,
+                    subjectId: $savedReport->getKey(),
+                    context: AuditContext::from([
+                        'reason_code' => 'field_access_denied',
+                    ]),
+                );
+
                 return to_route('analytics.saved-reports.index')
                     ->with(
                         'error',
@@ -65,6 +123,32 @@ final class ReportBuilderController extends Controller
 
             $initialReport = (new SavedReportResource($savedReport))
                 ->resolve($request);
+
+            $definition = $savedReport->definition;
+
+            $audit->record(
+                request: $request,
+                action: AuditAction::REPORT_OPENED,
+                outcome: AuditOutcome::SUCCEEDED,
+                actor: $employee,
+                dataset: $savedReport->dataset,
+                subjectType: AuditSubjectType::SAVED_REPORT,
+                subjectId: $savedReport->getKey(),
+                context: AuditContext::from([
+                    'definition_version' => $savedReport
+                        ->definition_version,
+                    'dimension_count' => count(
+                        $definition['dimensions'] ?? [],
+                    ),
+                    'filter_count' => count(
+                        $definition['filters'] ?? [],
+                    ),
+                    'limit' => (int) ($definition['limit'] ?? 100),
+                    'measure_count' => count(
+                        $definition['measures'] ?? [],
+                    ),
+                ]),
+            );
         }
 
         $reportingTimezone = new ReportingTimezone(

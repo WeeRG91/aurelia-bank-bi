@@ -2,14 +2,44 @@
 
 namespace Tests\Feature;
 
+use App\Analytics\Auditing\AuditAction;
+use App\Analytics\Auditing\AuditRecorder;
 use App\Enums\EmployeeRole;
 use App\Enums\EmployeeStatus;
+use App\Models\AnalyticsAuditEvent;
 use App\Models\Employee;
 use App\Models\User;
 use Tests\TestCase;
 
 final class DatasetFieldMetadataTest extends TestCase
 {
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        $audit = $this->createMock(AuditRecorder::class);
+
+        $audit->expects($this->once())
+            ->method('record')
+            ->willReturnCallback(
+                function (
+                    AuditAction $action,
+                ): AnalyticsAuditEvent {
+                    $this->assertSame(
+                        AuditAction::DATASET_INSPECTED,
+                        $action,
+                    );
+
+                    return new AnalyticsAuditEvent;
+                },
+            );
+
+        $this->app->instance(
+            AuditRecorder::class,
+            $audit,
+        );
+    }
+
     public function test_branch_analyst_does_not_receive_identifier_metadata(): void
     {
         $this->actingAs(

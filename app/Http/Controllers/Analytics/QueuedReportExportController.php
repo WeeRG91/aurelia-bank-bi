@@ -2,6 +2,11 @@
 
 namespace App\Http\Controllers\Analytics;
 
+use App\Analytics\Auditing\AuditAction;
+use App\Analytics\Auditing\AuditContext;
+use App\Analytics\Auditing\AuditOutcome;
+use App\Analytics\Auditing\AuditSubjectType;
+use App\Analytics\Auditing\WebAuditRecorder;
 use App\Analytics\Datasets\DatasetKey;
 use App\Analytics\Exports\ReportExportStatus;
 use App\Http\Controllers\Controller;
@@ -25,6 +30,7 @@ final class QueuedReportExportController extends Controller
     public function __invoke(
         ExportSavedReportRequest $request,
         SavedReport $savedReport,
+        WebAuditRecorder $audit,
     ): JsonResponse|RedirectResponse {
         /** @var User $user */
         $user = $request->user();
@@ -48,6 +54,8 @@ final class QueuedReportExportController extends Controller
             );
         }
 
+        $format = $request->exportFormat();
+
         $export = DB::transaction(
             function () use (
                 $employee,
@@ -55,6 +63,8 @@ final class QueuedReportExportController extends Controller
                 $dataset,
                 $definition,
                 $request,
+                $audit,
+                $format,
             ): ReportExport {
                 $export = $employee
                     ->requestedReportExports()
@@ -63,9 +73,35 @@ final class QueuedReportExportController extends Controller
                         'dataset' => $dataset,
                         'definition_version' => $savedReport->definition_version,
                         'definition' => $definition,
-                        'format' => $request->exportFormat(),
+                        'format' => $format,
                         'status' => ReportExportStatus::QUEUED,
                     ]);
+
+                $audit->record(
+                    request: $request,
+                    action: AuditAction::EXPORT_QUEUED,
+                    outcome: AuditOutcome::SUCCEEDED,
+                    actor: $employee,
+                    dataset: $dataset,
+                    subjectType: AuditSubjectType::REPORT_EXPORT,
+                    subjectId: $export->getKey(),
+                    context: AuditContext::from([
+                        'definition_version' => $savedReport
+                            ->definition_version,
+                        'dimension_count' => count(
+                            $definition['dimensions'] ?? [],
+                        ),
+                        'filter_count' => count(
+                            $definition['filters'] ?? [],
+                        ),
+                        'format' => $format->value,
+                        'limit' => (int) ($definition['limit'] ?? 100),
+                        'measure_count' => count(
+                            $definition['measures'] ?? [],
+                        ),
+                        'status_to' => ReportExportStatus::QUEUED->value,
+                    ]),
+                );
 
                 GenerateReportExport::dispatch(
                     (string) $export->getKey(),

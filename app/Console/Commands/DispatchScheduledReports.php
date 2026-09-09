@@ -2,8 +2,15 @@
 
 namespace App\Console\Commands;
 
+use App\Analytics\Auditing\AuditAction;
+use App\Analytics\Auditing\AuditContext;
+use App\Analytics\Auditing\AuditOutcome;
+use App\Analytics\Auditing\AuditRecorder;
+use App\Analytics\Auditing\AuditSource;
+use App\Analytics\Auditing\AuditSubjectType;
 use App\Analytics\Datasets\DatasetAccess;
 use App\Analytics\Datasets\DatasetFieldAccess;
+use App\Analytics\Datasets\DatasetKey;
 use App\Analytics\Exports\ReportExportStatus;
 use App\Analytics\Scheduling\NextReportRunCalculator;
 use App\Analytics\Scheduling\ScheduledReportStatus;
@@ -32,6 +39,7 @@ class DispatchScheduledReports extends Command
         NextReportRunCalculator $calculator,
         DatasetAccess $datasetAccess,
         DatasetFieldAccess $fieldAccess,
+        AuditRecorder $audit,
     ): int {
         $limit = max(
             1,
@@ -59,6 +67,7 @@ class DispatchScheduledReports extends Command
                 $calculator,
                 $datasetAccess,
                 $fieldAccess,
+                $audit,
             );
 
             if ($dispatched) {
@@ -83,6 +92,7 @@ class DispatchScheduledReports extends Command
         NextReportRunCalculator $calculator,
         DatasetAccess $datasetAccess,
         DatasetFieldAccess $fieldAccess,
+        AuditRecorder $audit,
     ): bool {
         return DB::transaction(
             function () use (
@@ -91,6 +101,7 @@ class DispatchScheduledReports extends Command
                 $calculator,
                 $datasetAccess,
                 $fieldAccess,
+                $audit,
             ): bool {
                 $schedule = ScheduledReport::query()
                     ->whereKey($scheduleId)
@@ -121,8 +132,17 @@ class DispatchScheduledReports extends Command
                     || $savedReport->owner_employee_id !== $creator->getKey()
                 ) {
                     return $this->pauseInvalidSchedule(
-                        $schedule,
-                        'Its report owner or user account is unavailable.',
+                        schedule: $schedule,
+                        audit: $audit,
+                        outcome: AuditOutcome::FAILED,
+                        reasonCode: 'report_owner_unavailable',
+                        warning: 'Its report owner or user account is unavailable.',
+                        actor: $creator instanceof Employee
+                            ? $creator
+                            : null,
+                        dataset: $savedReport instanceof SavedReport
+                            ? $savedReport->dataset
+                            : null,
                     );
                 }
 
@@ -141,8 +161,13 @@ class DispatchScheduledReports extends Command
                     )
                 ) {
                     return $this->pauseInvalidSchedule(
-                        $schedule,
-                        'Its dataset or one or more report fields are no longer available.',
+                        schedule: $schedule,
+                        audit: $audit,
+                        outcome: AuditOutcome::DENIED,
+                        reasonCode: 'report_access_revoked',
+                        warning: 'Its dataset or one or more report fields are no longer available.',
+                        actor: $creator,
+                        dataset: $savedReport->dataset,
                     );
                 }
 
@@ -159,8 +184,13 @@ class DispatchScheduledReports extends Command
                     );
                 } catch (Throwable $exception) {
                     return $this->pauseInvalidSchedule(
-                        $schedule,
-                        $exception->getMessage(),
+                        schedule: $schedule,
+                        audit: $audit,
+                        outcome: AuditOutcome::FAILED,
+                        reasonCode: 'schedule_configuration_invalid',
+                        warning: $exception->getMessage(),
+                        actor: $creator,
+                        dataset: $savedReport->dataset,
                     );
                 }
 
@@ -180,6 +210,38 @@ class DispatchScheduledReports extends Command
                     'next_run_at' => $nextRunAt,
                 ])->save();
 
+                $audit->record(
+                    action: AuditAction::SCHEDULE_DISPATCHED,
+                    outcome: AuditOutcome::SUCCEEDED,
+                    source: AuditSource::SCHEDULER,
+                    actor: $creator,
+                    dataset: $savedReport->dataset,
+                    subjectType: AuditSubjectType::SCHEDULED_REPORT,
+                    subjectId: $schedule->getKey(),
+                    context: AuditContext::from([
+                        'definition_version' => $savedReport
+                            ->definition_version,
+                        'format' => $schedule->format->value,
+                        'frequency' => $schedule->frequency->value,
+                    ]),
+                );
+
+                $audit->record(
+                    action: AuditAction::EXPORT_QUEUED,
+                    outcome: AuditOutcome::SUCCEEDED,
+                    source: AuditSource::SCHEDULER,
+                    actor: $creator,
+                    dataset: $savedReport->dataset,
+                    subjectType: AuditSubjectType::REPORT_EXPORT,
+                    subjectId: $export->getKey(),
+                    context: AuditContext::from([
+                        'definition_version' => $savedReport
+                            ->definition_version,
+                        'format' => $schedule->format->value,
+                        'status_to' => ReportExportStatus::QUEUED->value,
+                    ]),
+                );
+
                 GenerateReportExport::dispatch(
                     (string) $export->getKey(),
                 )->afterCommit();
@@ -191,16 +253,40 @@ class DispatchScheduledReports extends Command
 
     private function pauseInvalidSchedule(
         ScheduledReport $schedule,
-        string $reason = '',
+        AuditRecorder $audit,
+        AuditOutcome $outcome,
+        string $reasonCode,
+        string $warning,
+        ?Employee $actor = null,
+        ?DatasetKey $dataset = null,
     ): bool {
         $schedule->forceFill([
             'status' => ScheduledReportStatus::PAUSED,
         ])->save();
 
+        $audit->record(
+            action: AuditAction::SCHEDULE_AUTO_PAUSED,
+            outcome: $outcome,
+            source: $actor instanceof Employee
+                ? AuditSource::SCHEDULER
+                : AuditSource::SYSTEM,
+            actor: $actor,
+            dataset: $dataset,
+            subjectType: AuditSubjectType::SCHEDULED_REPORT,
+            subjectId: $schedule->getKey(),
+            context: AuditContext::from([
+                'format' => $schedule->format->value,
+                'frequency' => $schedule->frequency->value,
+                'reason_code' => $reasonCode,
+                'status_from' => ScheduledReportStatus::ACTIVE->value,
+                'status_to' => ScheduledReportStatus::PAUSED->value,
+            ]),
+        );
+
         $this->warn(sprintf(
             'Paused schedule %s: %s',
             $schedule->getKey(),
-            $reason,
+            $warning,
         ));
 
         return false;

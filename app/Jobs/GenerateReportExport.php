@@ -2,8 +2,15 @@
 
 namespace App\Jobs;
 
+use App\Analytics\Auditing\AuditAction;
+use App\Analytics\Auditing\AuditContext;
+use App\Analytics\Auditing\AuditOutcome;
+use App\Analytics\Auditing\AuditRecorder;
+use App\Analytics\Auditing\AuditSource;
+use App\Analytics\Auditing\AuditSubjectType;
 use App\Analytics\Exports\ReportExportGenerator;
 use App\Analytics\Exports\ReportExportStatus;
+use App\Models\Employee;
 use App\Models\ReportExport;
 use App\Models\ScheduledReport;
 use App\Models\User;
@@ -49,6 +56,7 @@ class GenerateReportExport implements ShouldQueue
      */
     public function handle(
         ReportExportGenerator $generator,
+        AuditRecorder $audit,
     ): void {
         $claimed = ReportExport::query()
             ->whereKey($this->exportId)
@@ -67,6 +75,8 @@ class GenerateReportExport implements ShouldQueue
             return;
         }
 
+        $jobStartedAt = microtime(true);
+
         $export = ReportExport::query()
             ->with([
                 'requestedBy.user',
@@ -75,13 +85,36 @@ class GenerateReportExport implements ShouldQueue
             ->findOrFail($this->exportId);
 
         try {
-            $user = $export->requestedBy?->user;
+            /** @var Employee $employee */
+            $employee = $export->requestedBy;
+            /** @var User $user */
+            $user = $employee?->user;
 
-            if ($user === null) {
+            if (
+                ! $employee instanceof Employee
+                || ! $user instanceof User
+            ) {
                 throw new RuntimeException(
                     'The employee who requested this export has no user account.',
                 );
             }
+
+            $audit->record(
+                action: AuditAction::EXPORT_STARTED,
+                outcome: AuditOutcome::SUCCEEDED,
+                source: AuditSource::QUEUE,
+                actor: $employee,
+                dataset: $export->dataset,
+                subjectType: AuditSubjectType::REPORT_EXPORT,
+                subjectId: $export->getKey(),
+                context: AuditContext::from([
+                    'definition_version' => $export
+                        ->definition_version,
+                    'format' => $export->format->value,
+                    'status_from' => ReportExportStatus::QUEUED->value,
+                    'status_to' => ReportExportStatus::PROCESSING->value,
+                ]),
+            );
 
             $file = $generator->generate(
                 user: $user,
@@ -132,6 +165,32 @@ class GenerateReportExport implements ShouldQueue
                     ->addDays($retentionDays),
                 'failure_message' => null,
             ])->save();
+
+            $audit->record(
+                action: AuditAction::EXPORT_COMPLETED,
+                outcome: AuditOutcome::SUCCEEDED,
+                source: AuditSource::QUEUE,
+                actor: $employee,
+                dataset: $export->dataset,
+                subjectType: AuditSubjectType::REPORT_EXPORT,
+                subjectId: $export->getKey(),
+                context: AuditContext::from([
+                    'definition_version' => $export
+                        ->definition_version,
+                    'duration_ms' => max(
+                        0,
+                        (int) round(
+                            (microtime(true) - $jobStartedAt) * 1_000,
+                        ),
+                    ),
+                    'file_size_bytes' => $export
+                        ->file_size_bytes,
+                    'format' => $export->format->value,
+                    'row_count' => $export->row_count,
+                    'status_from' => ReportExportStatus::PROCESSING->value,
+                    'status_to' => ReportExportStatus::COMPLETED->value,
+                ]),
+            );
         } catch (Throwable $exception) {
             $export->forceFill([
                 'status' => ReportExportStatus::QUEUED,
@@ -192,6 +251,8 @@ class GenerateReportExport implements ShouldQueue
 
         $finishedAt = now();
 
+        $statusFrom = $export->status->value;
+
         $export->forceFill([
             'status' => ReportExportStatus::FAILED,
             'started_at' => $export->started_at ?? $finishedAt,
@@ -203,6 +264,32 @@ class GenerateReportExport implements ShouldQueue
                 '',
             ),
         ])->save();
+
+        $employee = $export->requestedBy;
+
+        $audit = app(AuditRecorder::class);
+
+        $audit->record(
+            action: AuditAction::EXPORT_FAILED,
+            outcome: AuditOutcome::FAILED,
+            source: $employee instanceof Employee
+                ? AuditSource::QUEUE
+                : AuditSource::SYSTEM,
+            actor: $employee instanceof Employee
+                ? $employee
+                : null,
+            dataset: $export->dataset,
+            subjectType: AuditSubjectType::REPORT_EXPORT,
+            subjectId: $export->getKey(),
+            context: AuditContext::from([
+                'definition_version' => $export
+                    ->definition_version,
+                'format' => $export->format->value,
+                'reason_code' => 'export_generation_failed',
+                'status_from' => $statusFrom,
+                'status_to' => ReportExportStatus::FAILED->value,
+            ]),
+        );
 
         $schedule = $export->scheduledReport;
         $user = $export->requestedBy?->user;

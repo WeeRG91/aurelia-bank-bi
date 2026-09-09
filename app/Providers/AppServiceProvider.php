@@ -2,11 +2,15 @@
 
 namespace App\Providers;
 
+use App\Analytics\Auditing\AuditRecorder;
+use App\Analytics\Auditing\DatabaseAuditRecorder;
+use App\Models\AnalyticsAuditEvent;
 use App\Models\Branch;
 use App\Models\Employee;
 use App\Models\ReportExport;
 use App\Models\SavedReport;
 use App\Models\ScheduledReport;
+use App\Policies\AnalyticsAuditEventPolicy;
 use App\Policies\BranchPolicy;
 use App\Policies\EmployeePolicy;
 use App\Policies\ReportExportPolicy;
@@ -22,7 +26,10 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
-        //
+        $this->app->bind(
+            AuditRecorder::class,
+            DatabaseAuditRecorder::class
+        );
     }
 
     /**
@@ -35,5 +42,6 @@ class AppServiceProvider extends ServiceProvider
         Gate::policy(SavedReport::class, SavedReportPolicy::class);
         Gate::policy(ReportExport::class, ReportExportPolicy::class);
         Gate::policy(ScheduledReport::class, ScheduledReportPolicy::class);
+        Gate::policy(AnalyticsAuditEvent::class, AnalyticsAuditEventPolicy::class);
     }
 }
