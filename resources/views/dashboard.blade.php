@@ -42,4 +42,15 @@
             </div>
         </dl>
     </div>
+
+    <div
+        id="analytics-dashboard-app"
+        class="mt-8"
+        data-analytics-dashboard
+    ></div>
+
+    <script
+        id="analytics-dashboard-bootstrap"
+        type="application/json"
+    >{!! $bootstrapJson !!}</script>
 @endsection

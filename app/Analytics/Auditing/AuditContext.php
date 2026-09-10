@@ -16,10 +16,12 @@ final readonly class AuditContext
         'frequency',
         'limit',
         'measure_count',
+        'period',
         'reason_code',
         'row_count',
         'status_from',
         'status_to',
+        'widget_count',
     ];
 
     /**

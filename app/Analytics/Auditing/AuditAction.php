@@ -23,4 +23,5 @@ enum AuditAction: string
     case SCHEDULE_RESUMED = 'schedule_resumed';
     case SCHEDULE_DISPATCHED = 'schedule_dispatched';
     case SCHEDULE_AUTO_PAUSED = 'schedule_auto_paused';
+    case DASHBOARD_VIEWED = 'dashboard_viewed';
 }

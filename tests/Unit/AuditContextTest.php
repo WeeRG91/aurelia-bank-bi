@@ -12,15 +12,19 @@ final class AuditContextTest extends TestCase
     {
         $context = AuditContext::from([
             'row_count' => 25,
+            'period' => 'last_30_days',
             'format' => 'csv',
             'dimension_count' => 3,
+            'widget_count' => 3,
         ]);
 
         $this->assertSame(
             [
                 'dimension_count' => 3,
                 'format' => 'csv',
+                'period' => 'last_30_days',
                 'row_count' => 25,
+                'widget_count' => 3,
             ],
             $context->toArray(),
         );

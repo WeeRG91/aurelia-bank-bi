@@ -33,6 +33,7 @@ final class AnalyticsAuditEnumsTest extends TestCase
                 'schedule_resumed',
                 'schedule_dispatched',
                 'schedule_auto_paused',
+                'dashboard_viewed',
             ],
             array_column(AuditAction::cases(), 'value'),
         );
