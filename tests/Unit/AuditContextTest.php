@@ -16,10 +16,12 @@ final class AuditContextTest extends TestCase
             'format' => 'csv',
             'dimension_count' => 3,
             'widget_count' => 3,
+            'cache_hit' => true,
         ]);
 
         $this->assertSame(
             [
+                'cache_hit' => true,
                 'dimension_count' => 3,
                 'format' => 'csv',
                 'period' => 'last_30_days',

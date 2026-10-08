@@ -16,6 +16,7 @@ use App\Models\Transaction;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
+use Throwable;
 
 final class AnalyticsDemoSeeder extends Seeder
 {
@@ -25,6 +26,9 @@ final class AnalyticsDemoSeeder extends Seeder
 
     private const int SNAPSHOT_DAYS = 90;
 
+    /**
+     * @throws Throwable
+     */
     public function run(): void
     {
         DB::transaction(function (): void {

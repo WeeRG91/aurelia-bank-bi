@@ -12,4 +12,9 @@ return [
         'REPORT_EXPORT_RETENTION_DAYS',
         7,
     ),
+
+    'dashboard_cache_ttl_seconds' => (int) env(
+        'ANALYTICS_DASHBOARD_CACHE_TTL_SECONDS',
+        300,
+    ),
 ];

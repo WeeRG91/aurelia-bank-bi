@@ -7,6 +7,7 @@ use InvalidArgumentException;
 final readonly class AuditContext
 {
     private const array ALLOWED_KEYS = [
+        'cache_hit',
         'definition_version',
         'dimension_count',
         'duration_ms',

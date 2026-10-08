@@ -47,6 +47,7 @@ final class DashboardControllerTest extends TestCase
                         $values = $context->toArray();
 
                         return is_int($values['duration_ms'])
+                            && $values['cache_hit'] === false
                             && $values['duration_ms'] >= 0
                             && $values['period'] === 'last_7_days'
                             && $values['widget_count'] === 0;

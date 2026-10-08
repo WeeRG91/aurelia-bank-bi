@@ -53,12 +53,14 @@ final class DashboardController extends Controller
 
         $period = $request->period();
 
-        $widgets = $dashboard->forUser(
+        $snapshot = $dashboard->forUser(
             user: $user,
             now: CarbonImmutable::now('UTC'),
             reportingTimezone: $reportingTimezone,
-            relativeDatePreset: $period->relativeDatePreset(),
+            period: $period,
         );
+
+        $widgets = $snapshot->widgets;
 
         $audit->record(
             request: $request,
@@ -66,6 +68,7 @@ final class DashboardController extends Controller
             outcome: AuditOutcome::SUCCEEDED,
             actor: $employee,
             context: AuditContext::from([
+                'cache_hit' => $snapshot->cacheHit,
                 'duration_ms' => (int) (
                     (hrtime(true) - $startedAt) / 1_000_000
                 ),
@@ -77,6 +80,8 @@ final class DashboardController extends Controller
         $bootstrap = [
             'reportingTimezone' => $reportingTimezone->name,
             'selectedPeriod' => $period->value,
+            'generatedAt' => $snapshot->generatedAt->format(DATE_ATOM),
+            'cacheHit' => $snapshot->cacheHit,
             'periods' => array_map(
                 static fn (DashboardPeriod $period): array => [
                     'value' => $period->value,

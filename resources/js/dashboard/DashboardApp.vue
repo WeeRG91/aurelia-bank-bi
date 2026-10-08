@@ -40,6 +40,24 @@ function widget(key: DashboardWidgetKey): DashboardWidgetPayload | undefined {
     return props.bootstrap.widgets.find((candidate) => candidate.key === key);
 }
 
+const generatedAtLabel = computed(() => {
+    const generatedAt = new Date(props.bootstrap.generatedAt);
+
+    if (Number.isNaN(generatedAt.getTime())) {
+        return 'Generation time unavailable';
+    }
+
+    try {
+        return new Intl.DateTimeFormat(undefined, {
+            dateStyle: 'medium',
+            timeStyle: 'medium',
+            timeZone: props.bootstrap.reportingTimezone,
+        }).format(generatedAt);
+    } catch {
+        return generatedAt.toLocaleString();
+    }
+});
+
 const summary = computed(() => widget('transaction_summary'));
 const dailyCashFlow = computed(() => widget('daily_cash_flow'));
 const transactionMix = computed(() => widget('transaction_mix'));
@@ -159,6 +177,29 @@ function periodLabel(period: string | undefined): string {
                         </option>
                     </select>
                 </label>
+
+                <div class="flex flex-wrap items-center justify-end gap-2 text-xs">
+                    <span
+                        class="rounded-full px-2.5 py-1 font-semibold"
+                        :class="
+                            bootstrap.cacheHit
+                                ? 'bg-sky-50 text-sky-700'
+                                : 'bg-emerald-50 text-emerald-700'
+                        "
+                    >
+                        {{ bootstrap.cacheHit ? 'Cached result' : 'Fresh query' }}
+                    </span>
+
+                    <span class="text-slate-500">
+                        Generated
+                        <time
+                            class="font-semibold text-slate-700"
+                            :datetime="bootstrap.generatedAt"
+                        >
+                            {{ generatedAtLabel }}
+                        </time>
+                    </span>
+                </div>
 
                 <p class="text-xs text-slate-500">
                     Reporting timezone:

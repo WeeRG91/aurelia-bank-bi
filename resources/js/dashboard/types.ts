@@ -22,6 +22,8 @@ export interface DashboardBootstrap {
     dashboardUrl: string;
     reportingTimezone: string;
     selectedPeriod: DashboardPeriod;
+    generatedAt: string;
+    cacheHit: boolean;
     periods: DashboardPeriodOption[];
     widgets: DashboardWidgetPayload[];
 }

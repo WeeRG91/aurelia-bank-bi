@@ -20,6 +20,8 @@ final readonly class DashboardDataProvider
         private DatasetFieldAccess $fieldAccess,
         private DatasetSourceRegistry $sources,
         private AuthorizedDatasetQueryExecutor $executor,
+        private DashboardCacheKeyFactory $cacheKeys,
+        private DashboardResultCache $cache,
     ) {}
 
     /**
@@ -30,7 +32,56 @@ final readonly class DashboardDataProvider
         User $user,
         DateTimeImmutable $now,
         ReportingTimezone $reportingTimezone,
-        ?RelativeDatePreset $relativeDatePreset = null,
+        DashboardPeriod $period,
+    ): DashboardCacheEntry {
+        $cacheKey = $this->cacheKeys->forUser(
+            user: $user,
+            period: $period,
+            reportingTimezone: $reportingTimezone,
+            now: $now,
+        );
+
+        if ($cacheKey !== null) {
+            $cached = $this->cache->get($cacheKey);
+
+            if ($cached !== null) {
+                return $cached;
+            }
+        }
+
+        $results = $this->loadWidgets(
+            user: $user,
+            now: $now,
+            reportingTimezone: $reportingTimezone,
+            relativeDatePreset: $period->relativeDatePreset(),
+        );
+
+        if ($cacheKey === null) {
+            return new DashboardCacheEntry(
+                widgets: $results,
+                generatedAt: $now,
+                cacheHit: false,
+            );
+        }
+
+        return $this->cache->put(
+            key: $cacheKey,
+            results: $results,
+            generatedAt: $now,
+        );
+    }
+
+    /**
+     * @return list<DashboardWidgetResult>
+     *
+     * @throws DateInvalidTimeZoneException
+     * @throws Throwable
+     */
+    private function loadWidgets(
+        User $user,
+        DateTimeImmutable $now,
+        ReportingTimezone $reportingTimezone,
+        RelativeDatePreset $relativeDatePreset,
     ): array {
         $results = [];
 
@@ -64,8 +115,7 @@ final readonly class DashboardDataProvider
 
             $results[] = new DashboardWidgetResult(
                 widget: $widget,
-                period: $relativeDatePreset
-                    ?? $widget->relativeDatePreset,
+                period: $relativeDatePreset,
                 rows: array_map(
                     static fn (object $row): array => (array) $row,
                     $rows,
