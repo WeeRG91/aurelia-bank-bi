@@ -17,4 +17,11 @@ return [
         'ANALYTICS_DASHBOARD_CACHE_TTL_SECONDS',
         300,
     ),
+
+    'warehouse' => [
+        'transactions_etl_time' => env(
+            'ANALYTICS_TRANSACTIONS_ETL_TIME',
+            '01:30',
+        ),
+    ],
 ];

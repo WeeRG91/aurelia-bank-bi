@@ -135,6 +135,10 @@ return [
                 'WAREHOUSE_DB_SCHEMA',
                 'warehouse',
             ),
+            'timezone' => env(
+                'WAREHOUSE_DB_TIMEZONE',
+                'UTC',
+            ),
             'sslmode' => env(
                 'WAREHOUSE_DB_SSLMODE',
                 env('DB_SSLMODE', 'prefer'),

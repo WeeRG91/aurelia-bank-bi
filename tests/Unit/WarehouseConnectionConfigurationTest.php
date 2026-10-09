@@ -34,6 +34,11 @@ final class WarehouseConnectionConfigurationTest extends TestCase
             $warehouse['search_path'],
         );
 
+        $this->assertSame(
+            'UTC',
+            config('database.connections.warehouse.timezone'),
+        );
+
         $this->assertNotSame(
             $operational['search_path'],
             $warehouse['search_path'],

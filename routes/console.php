@@ -22,3 +22,14 @@ Schedule::command('reports:dispatch-scheduled')
     ->everyMinute()
     ->withoutOverlapping()
     ->onOneServer();
+
+Schedule::command('warehouse:load-transactions')
+    ->dailyAt(
+        (string) config(
+            'analytics.warehouse.transactions_etl_time',
+            '01:30',
+        ),
+    )
+    ->timezone('UTC')
+    ->withoutOverlapping(120)
+    ->onOneServer();

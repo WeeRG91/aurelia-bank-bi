@@ -4,6 +4,14 @@ namespace App\Providers;
 
 use App\Analytics\Auditing\AuditRecorder;
 use App\Analytics\Auditing\DatabaseAuditRecorder;
+use App\Analytics\Warehouse\Etl\BatchedTransactionStagingLoader;
+use App\Analytics\Warehouse\Etl\DatabaseTransactionStagingBatchWriter;
+use App\Analytics\Warehouse\Etl\DatabaseTransactionStagingSource;
+use App\Analytics\Warehouse\Etl\EloquentEtlRunStore;
+use App\Analytics\Warehouse\Etl\EtlRunStore;
+use App\Analytics\Warehouse\Etl\TransactionStagingBatchWriter;
+use App\Analytics\Warehouse\Etl\TransactionStagingLoader;
+use App\Analytics\Warehouse\Etl\TransactionStagingSource;
 use App\Models\AnalyticsAuditEvent;
 use App\Models\Branch;
 use App\Models\Employee;
@@ -28,7 +36,27 @@ class AppServiceProvider extends ServiceProvider
     {
         $this->app->bind(
             AuditRecorder::class,
-            DatabaseAuditRecorder::class
+            DatabaseAuditRecorder::class,
+        );
+
+        $this->app->bind(
+            EtlRunStore::class,
+            EloquentEtlRunStore::class,
+        );
+
+        $this->app->bind(
+            TransactionStagingSource::class,
+            DatabaseTransactionStagingSource::class,
+        );
+
+        $this->app->bind(
+            TransactionStagingLoader::class,
+            BatchedTransactionStagingLoader::class,
+        );
+
+        $this->app->bind(
+            TransactionStagingBatchWriter::class,
+            DatabaseTransactionStagingBatchWriter::class,
         );
     }
 
