@@ -23,5 +23,15 @@ return [
             'ANALYTICS_TRANSACTIONS_ETL_TIME',
             '01:30',
         ),
+
+        'date_dimension_start' => env(
+            'ANALYTICS_DATE_DIMENSION_START',
+            '2020-01-01',
+        ),
+
+        'date_dimension_end' => env(
+            'ANALYTICS_DATE_DIMENSION_END',
+            '2035-12-31',
+        ),
     ],
 ];
