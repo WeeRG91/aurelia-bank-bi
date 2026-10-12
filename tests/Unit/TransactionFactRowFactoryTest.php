@@ -18,6 +18,7 @@ final class TransactionFactRowFactoryTest extends TestCase
                 'branch_key' => 2,
                 'booking_date_key' => 20261012,
                 'value_date_key' => 20261011,
+                'booked_at' => '2026-10-12T15:45:00+02:00',
                 'transaction_reference' => 'TXN-D0000000000000000101',
                 'transaction_type' => 'transfer',
                 'category' => 'salary',
@@ -39,6 +40,7 @@ final class TransactionFactRowFactoryTest extends TestCase
                 'branch_key' => 2,
                 'booking_date_key' => 20261012,
                 'value_date_key' => 20261011,
+                'booked_at' => '2026-10-12 13:45:00+00:00',
                 'transaction_reference' => 'TXN-D0000000000000000101',
                 'transaction_type' => 'transfer',
                 'category' => 'salary',
@@ -63,6 +65,7 @@ final class TransactionFactRowFactoryTest extends TestCase
                 'branch_key' => 3,
                 'booking_date_key' => null,
                 'value_date_key' => null,
+                'booked_at' => null,
                 'transaction_reference' => 'TXN-D0000000000000000102',
                 'transaction_type' => 'fee',
                 'category' => 'bank_fee',
@@ -89,6 +92,7 @@ final class TransactionFactRowFactoryTest extends TestCase
 
         $this->assertNull($row['booking_date_key']);
         $this->assertNull($row['value_date_key']);
+        $this->assertNull($row['booked_at']);
     }
 
     public function test_unknown_direction_is_rejected(): void
@@ -104,6 +108,7 @@ final class TransactionFactRowFactoryTest extends TestCase
                 'branch_key' => 3,
                 'booking_date_key' => 20261012,
                 'value_date_key' => 20261012,
+                'booked_at' => '2026-10-12T13:30:00Z',
                 'transaction_reference' => 'TXN-D0000000000000000103',
                 'transaction_type' => 'transfer',
                 'category' => 'internal_transfer',

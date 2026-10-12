@@ -32,7 +32,7 @@ final class DashboardDataProviderTest extends TestCase
 
         $database->expects($this->exactly(3))
             ->method('connection')
-            ->with('pgsql')
+            ->with('warehouse')
             ->willReturn($connection);
 
         $connection->expects($this->exactly(3))
@@ -46,7 +46,7 @@ final class DashboardDataProviderTest extends TestCase
                 $this->callback(
                     static fn (string $sql): bool => str_contains(
                         $sql,
-                        'WHERE branches.id = ?',
+                        'WHERE dim_branch.source_branch_id = ?',
                     ),
                 ),
                 $this->callback(
@@ -188,7 +188,7 @@ final class DashboardDataProviderTest extends TestCase
         // Three widgets for each of two different branches.
         $database->expects($this->exactly(6))
             ->method('connection')
-            ->with('pgsql')
+            ->with('warehouse')
             ->willReturn($connection);
 
         $connection->expects($this->exactly(6))
@@ -202,7 +202,7 @@ final class DashboardDataProviderTest extends TestCase
                 $this->callback(
                     static fn (string $sql): bool => str_contains(
                         $sql,
-                        'WHERE branches.id = ?',
+                        'WHERE dim_branch.source_branch_id = ?',
                     ),
                 ),
                 $this->callback(

@@ -12,6 +12,7 @@ use App\Analytics\Queries\Compilation\CompiledFilter;
 use App\Analytics\Queries\Compilation\DimensionSourceCompiler;
 use App\Analytics\Queries\Compilation\FilterCompiler;
 use App\Analytics\Queries\Sources\DatasetSource;
+use App\Analytics\Queries\Sources\JoinDefinition;
 use App\Analytics\Queries\Sources\MeasureSource;
 use App\Analytics\Queries\Sources\MeasureSourceKind;
 use InvalidArgumentException;
@@ -67,9 +68,10 @@ final readonly class DatasetQueryCompiler
             $source->baseTable(),
         );
 
-        foreach ($source->joins() as $join) {
+        foreach ($this->requiredJoins($source, $query, $scope) as $join) {
             $sql .= sprintf(
-                ' INNER JOIN %s ON %s = %s',
+                ' %s %s ON %s = %s',
+                $join->type->value,
                 $join->table,
                 $join->leftColumn,
                 $join->rightColumn,
@@ -135,6 +137,104 @@ final readonly class DatasetQueryCompiler
             sql: $sql,
             bindings: $bindings,
         );
+    }
+
+    /**
+     * @return list<JoinDefinition>
+     */
+    private function requiredJoins(
+        DatasetSource $source,
+        DatasetQuery $query,
+        DatasetRowScope $scope,
+    ): array {
+        $requiredTables = [];
+
+        foreach ($query->dimensions as $dimension) {
+            $this->requireColumnTable(
+                $requiredTables,
+                $source->dimensionSource($dimension)->column,
+            );
+        }
+
+        foreach ($query->filters as $filter) {
+            $this->requireColumnTable(
+                $requiredTables,
+                $source->dimensionSource($filter->dimension)->column,
+            );
+        }
+
+        foreach ($query->measures as $measure) {
+            $measureSource = $source->measureSource($measure);
+
+            $this->requireColumnTable(
+                $requiredTables,
+                $measureSource->column,
+            );
+
+            if ($measureSource->directionColumn !== null) {
+                $this->requireColumnTable(
+                    $requiredTables,
+                    $measureSource->directionColumn,
+                );
+            }
+        }
+
+        if ($scope->type === RowScopeType::BRANCH) {
+            $this->requireColumnTable(
+                $requiredTables,
+                $source->branchScopeColumn(),
+            );
+        }
+
+        $joins = $source->joins();
+
+        do {
+            $dependencyAdded = false;
+
+            foreach ($joins as $join) {
+                if (! isset($requiredTables[$join->table])) {
+                    continue;
+                }
+
+                $leftTable = $this->tableFromColumn(
+                    $join->leftColumn,
+                );
+
+                if (
+                    $leftTable === $source->baseTable()
+                    || isset($requiredTables[$leftTable])
+                ) {
+                    continue;
+                }
+
+                $requiredTables[$leftTable] = true;
+                $dependencyAdded = true;
+            }
+        } while ($dependencyAdded);
+
+        return array_values(
+            array_filter(
+                $joins,
+                static fn (JoinDefinition $join): bool => isset(
+                    $requiredTables[$join->table],
+                ),
+            ),
+        );
+    }
+
+    /**
+     * @param  array<string, true>  $requiredTables
+     */
+    private function requireColumnTable(
+        array &$requiredTables,
+        string $column,
+    ): void {
+        $requiredTables[$this->tableFromColumn($column)] = true;
+    }
+
+    private function tableFromColumn(string $column): string
+    {
+        return explode('.', $column, 2)[0];
     }
 
     private function compileMeasure(

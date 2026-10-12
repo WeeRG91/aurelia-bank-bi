@@ -157,6 +157,9 @@ final readonly class DatabaseTransactionFactSource implements TransactionFactSou
                 'value_date_key' => $row->value_date_key === null
                     ? null
                     : (int) $row->value_date_key,
+                'booked_at' => $row->booked_at === null
+                    ? null
+                    : (string) $row->booked_at,
                 'transaction_reference' => (string) $row->transaction_reference,
                 'transaction_type' => (string) $row->transaction_type,
                 'category' => (string) $row->category,

@@ -28,7 +28,7 @@ class ReportPreviewControllerTest extends TestCase
 
         $database->expects($this->once())
             ->method('connection')
-            ->with('pgsql')
+            ->with('warehouse')
             ->willReturn($connection);
 
         $connection->expects($this->once())
@@ -42,10 +42,10 @@ class ReportPreviewControllerTest extends TestCase
                 $this->callback(
                     static fn (string $sql): bool => str_contains(
                         $sql,
-                        'WHERE branches.id = ?',
+                        'WHERE dim_branch.source_branch_id = ?',
                     ) && str_contains(
                         $sql,
-                        'transactions.currency = ?',
+                        'fact_transactions.currency = ?',
                     ),
                 ),
                 [42, 'EUR', 100],

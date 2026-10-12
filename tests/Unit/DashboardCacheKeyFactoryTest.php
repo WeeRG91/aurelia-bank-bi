@@ -44,7 +44,7 @@ final class DashboardCacheKeyFactoryTest extends TestCase
         $this->assertSame($first, $second);
 
         $this->assertMatchesRegularExpression(
-            '/^analytics:dashboard:v1:[a-f0-9]{64}$/',
+            '/^analytics:dashboard:v2:[a-f0-9]{64}$/',
             (string) $first,
         );
     }

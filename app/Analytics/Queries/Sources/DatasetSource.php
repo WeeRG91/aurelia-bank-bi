@@ -8,6 +8,8 @@ interface DatasetSource
 {
     public function dataset(): DatasetKey;
 
+    public function connectionName(): string;
+
     public function baseTable(): string;
 
     public function branchScopeColumn(): string;

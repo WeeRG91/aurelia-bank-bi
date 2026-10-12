@@ -11,6 +11,7 @@ interface TransactionFactSource
      *     branch_key: int,
      *     booking_date_key: int|null,
      *     value_date_key: int|null,
+     *     booked_at: string|null,
      *     transaction_reference: string,
      *     transaction_type: string,
      *     category: string,

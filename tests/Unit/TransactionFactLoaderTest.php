@@ -23,6 +23,7 @@ final class TransactionFactLoaderTest extends TestCase
                     'branch_key' => 2,
                     'booking_date_key' => 20261012,
                     'value_date_key' => 20261011,
+                    'booked_at' => '2026-10-12T15:45:00+02:00',
                     'transaction_reference' => 'TXN-D0000000000000000101',
                     'transaction_type' => 'transfer',
                     'category' => 'salary',
@@ -39,6 +40,7 @@ final class TransactionFactLoaderTest extends TestCase
                     'branch_key' => 3,
                     'booking_date_key' => null,
                     'value_date_key' => null,
+                    'booked_at' => null,
                     'transaction_reference' => 'TXN-D0000000000000000102',
                     'transaction_type' => 'fee',
                     'category' => 'bank_fee',
@@ -101,6 +103,17 @@ final class TransactionFactLoaderTest extends TestCase
             array_column(
                 $writer->batches[0],
                 'signed_amount',
+            ),
+        );
+
+        $this->assertSame(
+            [
+                '2026-10-12 13:45:00+00:00',
+                null,
+            ],
+            array_column(
+                $writer->batches[0],
+                'booked_at',
             ),
         );
 

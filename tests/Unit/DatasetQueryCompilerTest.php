@@ -12,9 +12,16 @@ use App\Analytics\Queries\Authorization\DatasetRowScope;
 use App\Analytics\Queries\Compilation\FilterCompiler;
 use App\Analytics\Queries\DatasetQuery;
 use App\Analytics\Queries\DatasetQueryCompiler;
+use App\Analytics\Queries\Sources\DatasetSource;
+use App\Analytics\Queries\Sources\DimensionSource;
+use App\Analytics\Queries\Sources\JoinDefinition;
+use App\Analytics\Queries\Sources\JoinType;
+use App\Analytics\Queries\Sources\MeasureSource;
 use App\Analytics\Queries\Sources\TransactionDatasetSource;
+use App\Analytics\Queries\Sources\WarehouseTransactionDatasetSource;
 use App\Analytics\Time\ReportingTimezone;
 use InvalidArgumentException;
+use LogicException;
 use PHPUnit\Framework\TestCase;
 
 class DatasetQueryCompilerTest extends TestCase
@@ -270,5 +277,121 @@ class DatasetQueryCompilerTest extends TestCase
         );
 
         $this->assertSame([100], $compiled->bindings);
+    }
+
+    public function test_nullable_dimension_can_use_a_left_join(): void
+    {
+        $source = new class implements DatasetSource
+        {
+            public function dataset(): DatasetKey
+            {
+                return DatasetKey::TRANSACTIONS;
+            }
+
+            public function connectionName(): string
+            {
+                return 'warehouse';
+            }
+
+            public function baseTable(): string
+            {
+                return 'fact_transactions';
+            }
+
+            public function branchScopeColumn(): string
+            {
+                return 'fact_transactions.branch_key';
+            }
+
+            public function dimensionSources(): array
+            {
+                return [
+                    'value_date' => new DimensionSource(
+                        column: 'dim_date.calendar_date',
+                    ),
+                ];
+            }
+
+            public function dimensionSource(
+                string $dimension,
+            ): DimensionSource {
+                return $this->dimensionSources()[$dimension];
+            }
+
+            public function measureSources(): array
+            {
+                return [];
+            }
+
+            public function measureSource(
+                string $measure,
+            ): MeasureSource {
+                throw new LogicException(
+                    "No measure source [{$measure}].",
+                );
+            }
+
+            public function joins(): array
+            {
+                return [
+                    new JoinDefinition(
+                        table: 'dim_date',
+                        leftColumn: 'fact_transactions.value_date_key',
+                        rightColumn: 'dim_date.date_key',
+                        type: JoinType::LEFT,
+                    ),
+                ];
+            }
+        };
+
+        $compiled = $this->compiler()->compile(
+            $source,
+            new DatasetQuery(
+                dataset: DatasetKey::TRANSACTIONS,
+                dimensions: ['value_date'],
+            ),
+            DatasetRowScope::unrestricted(),
+        );
+
+        $this->assertSame(
+            'SELECT dim_date.calendar_date AS value_date FROM fact_transactions LEFT JOIN dim_date ON fact_transactions.value_date_key = dim_date.date_key LIMIT ?',
+            $compiled->sql,
+        );
+
+        $this->assertSame([100], $compiled->bindings);
+    }
+
+    public function test_unused_warehouse_joins_are_omitted(): void
+    {
+        $compiled = $this->compiler()->compile(
+            new WarehouseTransactionDatasetSource,
+            new DatasetQuery(
+                dataset: DatasetKey::TRANSACTIONS,
+                dimensions: [
+                    'branch',
+                    'currency',
+                ],
+                measures: [
+                    'transaction_count',
+                    'net_cash_flow',
+                ],
+            ),
+            DatasetRowScope::branch(2),
+        );
+
+        $this->assertStringContainsString(
+            'INNER JOIN dim_branch ON fact_transactions.branch_key = dim_branch.branch_key',
+            $compiled->sql,
+        );
+
+        $this->assertStringNotContainsString(
+            'JOIN dim_account',
+            $compiled->sql,
+        );
+
+        $this->assertStringNotContainsString(
+            'JOIN dim_date',
+            $compiled->sql,
+        );
     }
 }

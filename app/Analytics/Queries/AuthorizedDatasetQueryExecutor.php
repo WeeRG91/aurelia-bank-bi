@@ -35,7 +35,9 @@ final readonly class AuthorizedDatasetQueryExecutor
             $query,
         );
 
-        $connection = $this->database->connection('pgsql');
+        $connection = $this->database->connection(
+            $source->connectionName(),
+        );
 
         return $connection->transaction(
             function (

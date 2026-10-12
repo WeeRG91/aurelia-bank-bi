@@ -38,6 +38,7 @@ final readonly class DatabaseTransactionFactWriter implements TransactionFactWri
                     'branch_key',
                     'booking_date_key',
                     'value_date_key',
+                    'booked_at',
                     'transaction_reference',
                     'transaction_type',
                     'category',

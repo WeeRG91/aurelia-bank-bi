@@ -13,6 +13,11 @@ final class AccountBalanceDatasetSource implements DatasetSource
         return DatasetKey::ACCOUNT_BALANCES;
     }
 
+    public function connectionName(): string
+    {
+        return 'pgsql';
+    }
+
     public function baseTable(): string
     {
         return 'account_balance_snapshots';

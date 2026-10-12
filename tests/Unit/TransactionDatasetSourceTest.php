@@ -20,6 +20,11 @@ class TransactionDatasetSourceTest extends TestCase
         $source = new TransactionDatasetSource;
 
         $this->assertSame(
+            'pgsql',
+            $source->connectionName(),
+        );
+
+        $this->assertSame(
             DatasetKey::TRANSACTIONS,
             $source->dataset(),
         );

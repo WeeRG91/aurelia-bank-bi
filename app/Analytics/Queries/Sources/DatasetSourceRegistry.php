@@ -17,7 +17,7 @@ final class DatasetSourceRegistry
         foreach (
             $sources ?? [
                 new AccountBalanceDatasetSource,
-                new TransactionDatasetSource,
+                new WarehouseTransactionDatasetSource,
             ] as $source
         ) {
             $key = $source->dataset()->value;

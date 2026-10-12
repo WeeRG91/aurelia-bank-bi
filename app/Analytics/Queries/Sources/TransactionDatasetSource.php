@@ -13,6 +13,11 @@ final class TransactionDatasetSource implements DatasetSource
         return DatasetKey::TRANSACTIONS;
     }
 
+    public function connectionName(): string
+    {
+        return 'pgsql';
+    }
+
     public function baseTable(): string
     {
         return 'transactions';

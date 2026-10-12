@@ -10,6 +10,7 @@ final readonly class JoinDefinition
         public string $table,
         public string $leftColumn,
         public string $rightColumn,
+        public JoinType $type = JoinType::INNER,
     ) {
         if (preg_match('/^[a-z][a-z0-9_]*$/', $this->table) !== 1) {
             throw new InvalidArgumentException(

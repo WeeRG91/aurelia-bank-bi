@@ -6,6 +6,7 @@ use App\Analytics\Datasets\DatasetKey;
 use App\Analytics\Datasets\DatasetRegistry;
 use App\Analytics\Queries\Sources\DatasetSourceRegistry;
 use App\Analytics\Queries\Sources\TransactionDatasetSource;
+use App\Analytics\Queries\Sources\WarehouseTransactionDatasetSource;
 use LogicException;
 use PHPUnit\Framework\TestCase;
 
@@ -15,14 +16,37 @@ class DatasetSourceRegistryTest extends TestCase
     {
         $registry = new DatasetSourceRegistry;
 
+        $transactions = $registry->get(
+            DatasetKey::TRANSACTIONS,
+        );
+
+        $accountBalances = $registry->get(
+            DatasetKey::ACCOUNT_BALANCES,
+        );
+
         $this->assertSame(
             DatasetKey::TRANSACTIONS,
-            $registry->get(DatasetKey::TRANSACTIONS)->dataset(),
+            $transactions->dataset(),
         );
 
         $this->assertSame(
             DatasetKey::ACCOUNT_BALANCES,
             $registry->get('account_balances')->dataset(),
+        );
+
+        $this->assertInstanceOf(
+            WarehouseTransactionDatasetSource::class,
+            $transactions,
+        );
+
+        $this->assertSame(
+            'warehouse',
+            $transactions->connectionName(),
+        );
+
+        $this->assertSame(
+            'pgsql',
+            $accountBalances->connectionName(),
         );
     }
 

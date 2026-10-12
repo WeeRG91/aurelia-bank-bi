@@ -2,6 +2,7 @@
 
 namespace App\Analytics\Warehouse\Facts;
 
+use DateMalformedStringException;
 use DateTimeImmutable;
 use DateTimeZone;
 use InvalidArgumentException;
@@ -9,12 +10,13 @@ use InvalidArgumentException;
 final readonly class TransactionFactRowFactory
 {
     /**
-     * @param  array{
+     * @param array{
      *     source_transaction_id: int,
      *     account_key: int,
      *     branch_key: int,
      *     booking_date_key: int|null,
      *     value_date_key: int|null,
+     *     booked_at: string|null,
      *     transaction_reference: string,
      *     transaction_type: string,
      *     category: string,
@@ -23,13 +25,14 @@ final readonly class TransactionFactRowFactory
      *     direction: string,
      *     transaction_status: string,
      *     source_updated_at: string|null
-     * }  $source
+     * } $source
      * @return array{
      *     source_transaction_id: int,
      *     account_key: int,
      *     branch_key: int,
      *     booking_date_key: int|null,
      *     value_date_key: int|null,
+     *     booked_at: string|null,
      *     transaction_reference: string,
      *     transaction_type: string,
      *     category: string,
@@ -41,6 +44,8 @@ final readonly class TransactionFactRowFactory
      *     source_updated_at: string|null,
      *     loaded_at: string
      * }
+     *
+     * @throws DateMalformedStringException
      */
     public function create(
         array $source,
@@ -54,12 +59,19 @@ final readonly class TransactionFactRowFactory
             ),
         };
 
+        $utc = new DateTimeZone('UTC');
+
         return [
             'source_transaction_id' => $source['source_transaction_id'],
             'account_key' => $source['account_key'],
             'branch_key' => $source['branch_key'],
             'booking_date_key' => $source['booking_date_key'],
             'value_date_key' => $source['value_date_key'],
+            'booked_at' => $source['booked_at'] === null
+                ? null
+                : (new DateTimeImmutable($source['booked_at']))
+                    ->setTimezone($utc)
+                    ->format('Y-m-d H:i:sP'),
             'transaction_reference' => $source['transaction_reference'],
             'transaction_type' => $source['transaction_type'],
             'category' => $source['category'],
@@ -70,7 +82,7 @@ final readonly class TransactionFactRowFactory
             'signed_amount' => $signedAmount,
             'source_updated_at' => $source['source_updated_at'],
             'loaded_at' => $loadedAt
-                ->setTimezone(new DateTimeZone('UTC'))
+                ->setTimezone($utc)
                 ->format('Y-m-d H:i:sP'),
         ];
     }

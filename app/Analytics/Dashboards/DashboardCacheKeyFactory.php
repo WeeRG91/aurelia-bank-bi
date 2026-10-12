@@ -15,7 +15,7 @@ use DateTimeImmutable;
 
 final readonly class DashboardCacheKeyFactory
 {
-    private const int VERSION = 1;
+    private const int VERSION = 2;
 
     public function __construct(
         private DatasetRowScopeResolver $scopeResolver,
