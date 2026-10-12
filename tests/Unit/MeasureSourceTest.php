@@ -2,6 +2,7 @@
 
 namespace Tests\Unit;
 
+use App\Analytics\Datasets\AggregationFunction;
 use App\Analytics\Queries\Sources\MeasureSource;
 use App\Analytics\Queries\Sources\MeasureSourceKind;
 use InvalidArgumentException;
@@ -58,6 +59,19 @@ class MeasureSourceTest extends TestCase
 
         new MeasureSource(
             column: 'amount); DROP TABLE users; --',
+        );
+    }
+
+    public function test_aggregation_can_be_overridden_for_preaggregated_measure(): void
+    {
+        $source = new MeasureSource(
+            column: 'agg_daily_transaction_activity.transaction_count',
+            aggregationOverride: AggregationFunction::SUM,
+        );
+
+        $this->assertSame(
+            AggregationFunction::SUM,
+            $source->aggregationOverride,
         );
     }
 }

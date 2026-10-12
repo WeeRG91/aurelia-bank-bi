@@ -11,6 +11,7 @@ use App\Analytics\Queries\Authorization\RowScopeType;
 use App\Analytics\Queries\Compilation\CompiledFilter;
 use App\Analytics\Queries\Compilation\DimensionSourceCompiler;
 use App\Analytics\Queries\Compilation\FilterCompiler;
+use App\Analytics\Queries\Sources\ConstrainedDatasetSource;
 use App\Analytics\Queries\Sources\DatasetSource;
 use App\Analytics\Queries\Sources\JoinDefinition;
 use App\Analytics\Queries\Sources\MeasureSource;
@@ -80,6 +81,17 @@ final readonly class DatasetQueryCompiler
 
         $bindings = [];
         $where = [];
+
+        if ($source instanceof ConstrainedDatasetSource) {
+            foreach ($source->constraints($query) as $constraint) {
+                $where[] = $constraint->sql;
+
+                array_push(
+                    $bindings,
+                    ...$constraint->bindings,
+                );
+            }
+        }
 
         $compiledScope = $this->compileScope(
             $source,
@@ -249,7 +261,10 @@ final readonly class DatasetQueryCompiler
             $measureSource,
         );
 
-        $function = match ($measure->aggregation) {
+        $aggregation = $measureSource->aggregationOverride
+            ?? $measure->aggregation;
+
+        $function = match ($aggregation) {
             AggregationFunction::COUNT => 'COUNT',
             AggregationFunction::SUM => 'SUM',
             AggregationFunction::AVERAGE => 'AVG',

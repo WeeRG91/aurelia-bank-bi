@@ -19,6 +19,7 @@ final readonly class DashboardCacheKeyFactory
 
     public function __construct(
         private DatasetRowScopeResolver $scopeResolver,
+        private DashboardCacheGeneration $cacheGeneration,
     ) {}
 
     /**
@@ -54,6 +55,7 @@ final readonly class DashboardCacheKeyFactory
 
         $components = implode('|', [
             'version='.self::VERSION,
+            'generation='.$this->cacheGeneration->current(),
             'dataset='.DatasetKey::TRANSACTIONS->value,
             'role='.$employee->role->value,
             'scope='.$scope->type->value,

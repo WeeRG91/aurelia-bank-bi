@@ -2,6 +2,7 @@
 
 namespace App\Analytics\Queries\Sources;
 
+use App\Analytics\Datasets\AggregationFunction;
 use InvalidArgumentException;
 
 final readonly class MeasureSource
@@ -10,6 +11,7 @@ final readonly class MeasureSource
         public string $column,
         public MeasureSourceKind $kind = MeasureSourceKind::COLUMN,
         public ?string $directionColumn = null,
+        public ?AggregationFunction $aggregationOverride = null,
     ) {
         $this->assertQualifiedColumn($this->column);
 

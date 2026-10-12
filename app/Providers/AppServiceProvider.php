@@ -4,6 +4,10 @@ namespace App\Providers;
 
 use App\Analytics\Auditing\AuditRecorder;
 use App\Analytics\Auditing\DatabaseAuditRecorder;
+use App\Analytics\Dashboards\DashboardCacheGeneration;
+use App\Analytics\Dashboards\RepositoryDashboardCacheGeneration;
+use App\Analytics\Warehouse\Aggregates\DailyTransactionAggregateRefresher;
+use App\Analytics\Warehouse\Aggregates\DatabaseDailyTransactionAggregateRefresher;
 use App\Analytics\Warehouse\Dimensions\AccountDimensionSource;
 use App\Analytics\Warehouse\Dimensions\AccountDimensionWriter;
 use App\Analytics\Warehouse\Dimensions\BranchDimensionSource;
@@ -106,6 +110,16 @@ class AppServiceProvider extends ServiceProvider
         $this->app->bind(
             TransactionFactWriter::class,
             DatabaseTransactionFactWriter::class,
+        );
+
+        $this->app->bind(
+            DailyTransactionAggregateRefresher::class,
+            DatabaseDailyTransactionAggregateRefresher::class,
+        );
+
+        $this->app->bind(
+            DashboardCacheGeneration::class,
+            RepositoryDashboardCacheGeneration::class,
         );
     }
 

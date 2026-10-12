@@ -46,15 +46,21 @@ final class DashboardDataProviderTest extends TestCase
                 $this->callback(
                     static fn (string $sql): bool => str_contains(
                         $sql,
-                        'WHERE dim_branch.source_branch_id = ?',
+                        'FROM agg_daily_transaction_activity',
+                    ) && str_contains(
+                        $sql,
+                        'agg_daily_transaction_activity.reporting_timezone = ?',
+                    ) && str_contains(
+                        $sql,
+                        'dim_branch.source_branch_id = ?',
                     ),
                 ),
                 $this->callback(
                     static fn (array $bindings): bool => in_array(
-                        42,
+                        'Europe/Luxembourg',
                         $bindings,
                         true,
-                    ),
+                    ) && in_array(42, $bindings, true),
                 ),
             )
             ->willReturn([
@@ -202,18 +208,23 @@ final class DashboardDataProviderTest extends TestCase
                 $this->callback(
                     static fn (string $sql): bool => str_contains(
                         $sql,
-                        'WHERE dim_branch.source_branch_id = ?',
+                        'FROM agg_daily_transaction_activity',
+                    ) && str_contains(
+                        $sql,
+                        'agg_daily_transaction_activity.reporting_timezone = ?',
+                    ) && str_contains(
+                        $sql,
+                        'dim_branch.source_branch_id = ?',
                     ),
                 ),
                 $this->callback(
                     static fn (array $bindings): bool => in_array(
-                        42,
+                        'Europe/Luxembourg',
                         $bindings,
                         true,
-                    ) || in_array(
-                        84,
-                        $bindings,
-                        true,
+                    ) && (
+                        in_array(42, $bindings, true)
+                        || in_array(84, $bindings, true)
                     ),
                 ),
             )

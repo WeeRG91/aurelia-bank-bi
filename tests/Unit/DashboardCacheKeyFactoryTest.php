@@ -2,6 +2,7 @@
 
 namespace Tests\Unit;
 
+use App\Analytics\Dashboards\DashboardCacheGeneration;
 use App\Analytics\Dashboards\DashboardCacheKeyFactory;
 use App\Analytics\Dashboards\DashboardPeriod;
 use App\Analytics\Datasets\DatasetAccess;
@@ -137,12 +138,26 @@ final class DashboardCacheKeyFactoryTest extends TestCase
 
     private function factory(): DashboardCacheKeyFactory
     {
+        $cacheGeneration = new class implements DashboardCacheGeneration
+        {
+            public function current(): string
+            {
+                return 'test-generation';
+            }
+
+            public function rotate(): string
+            {
+                return 'rotated-test-generation';
+            }
+        };
+
         return new DashboardCacheKeyFactory(
             new DatasetRowScopeResolver(
                 new DatasetAccess(
                     new DatasetRegistry,
                 ),
             ),
+            $cacheGeneration,
         );
     }
 

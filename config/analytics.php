@@ -24,6 +24,11 @@ return [
             '01:30',
         ),
 
+        'daily_transaction_aggregate_refresh_time' => env(
+            'ANALYTICS_DAILY_TRANSACTION_AGGREGATE_REFRESH_TIME',
+            '02:00',
+        ),
+
         'date_dimension_start' => env(
             'ANALYTICS_DATE_DIMENSION_START',
             '2020-01-01',

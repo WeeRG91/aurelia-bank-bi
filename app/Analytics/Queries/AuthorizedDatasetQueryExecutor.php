@@ -4,6 +4,7 @@ namespace App\Analytics\Queries;
 
 use App\Analytics\Queries\Authorization\AuthorizedDatasetQueryCompiler;
 use App\Analytics\Queries\Sources\DatasetSource;
+use App\Analytics\Queries\Sources\TransactionDatasetSourceRouter;
 use App\Models\User;
 use Illuminate\Database\ConnectionInterface;
 use Illuminate\Database\DatabaseManager;
@@ -17,6 +18,7 @@ final readonly class AuthorizedDatasetQueryExecutor
     public function __construct(
         private AuthorizedDatasetQueryCompiler $compiler,
         private DatabaseManager $database,
+        private TransactionDatasetSourceRouter $sourceRouter = new TransactionDatasetSourceRouter,
     ) {}
 
     /**
@@ -29,6 +31,11 @@ final readonly class AuthorizedDatasetQueryExecutor
         DatasetSource $source,
         DatasetQuery $query,
     ): array {
+        $source = $this->sourceRouter->route(
+            $source,
+            $query,
+        );
+
         $compiled = $this->compiler->compileFor(
             $user,
             $source,

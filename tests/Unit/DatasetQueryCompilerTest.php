@@ -2,9 +2,11 @@
 
 namespace Tests\Unit;
 
+use App\Analytics\Datasets\AggregationFunction;
 use App\Analytics\Datasets\DatasetKey;
 use App\Analytics\Datasets\DatasetRegistry;
 use App\Analytics\Datasets\UnknownDimension;
+use App\Analytics\Datasets\UnknownMeasure;
 use App\Analytics\Filters\DimensionFilterRules;
 use App\Analytics\Filters\FilterCondition;
 use App\Analytics\Filters\FilterValidator;
@@ -391,6 +393,92 @@ class DatasetQueryCompilerTest extends TestCase
 
         $this->assertStringNotContainsString(
             'JOIN dim_date',
+            $compiled->sql,
+        );
+    }
+
+    public function test_physical_measure_can_override_semantic_aggregation(): void
+    {
+        $source = new class implements DatasetSource
+        {
+            public function dataset(): DatasetKey
+            {
+                return DatasetKey::TRANSACTIONS;
+            }
+
+            public function connectionName(): string
+            {
+                return 'warehouse';
+            }
+
+            public function baseTable(): string
+            {
+                return 'agg_daily_transaction_activity';
+            }
+
+            public function branchScopeColumn(): string
+            {
+                return 'dim_branch.source_branch_id';
+            }
+
+            public function dimensionSources(): array
+            {
+                return [];
+            }
+
+            public function dimensionSource(
+                string $dimension,
+            ): DimensionSource {
+                throw UnknownDimension::forDataset(
+                    $this->dataset(),
+                    $dimension,
+                );
+            }
+
+            public function measureSources(): array
+            {
+                return [
+                    'transaction_count' => new MeasureSource(
+                        column: 'agg_daily_transaction_activity.transaction_count',
+                        aggregationOverride: AggregationFunction::SUM,
+                    ),
+                ];
+            }
+
+            public function measureSource(
+                string $measure,
+            ): MeasureSource {
+                return $this->measureSources()[$measure]
+                    ?? throw UnknownMeasure::forDataset(
+                        $this->dataset(),
+                        $measure,
+                    );
+            }
+
+            public function joins(): array
+            {
+                return [];
+            }
+        };
+
+        $compiled = $this->compiler()->compile(
+            $source,
+            new DatasetQuery(
+                dataset: DatasetKey::TRANSACTIONS,
+                dimensions: [],
+                measures: ['transaction_count'],
+                limit: 100,
+            ),
+            DatasetRowScope::unrestricted(),
+        );
+
+        $this->assertStringContainsString(
+            'SUM(agg_daily_transaction_activity.transaction_count) AS transaction_count',
+            $compiled->sql,
+        );
+
+        $this->assertStringNotContainsString(
+            'COUNT(agg_daily_transaction_activity.transaction_count)',
             $compiled->sql,
         );
     }
