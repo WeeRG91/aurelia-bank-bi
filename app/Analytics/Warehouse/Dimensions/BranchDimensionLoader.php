@@ -42,7 +42,7 @@ final readonly class BranchDimensionLoader
 
         $rowCount = count($batch);
 
-        $this->writer->upsert($batch);
+        $this->writer->synchronize($batch);
 
         $batch = [];
 

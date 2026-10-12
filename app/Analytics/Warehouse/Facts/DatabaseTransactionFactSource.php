@@ -20,15 +20,61 @@ final readonly class DatabaseTransactionFactSource implements TransactionFactSou
             ->table('stg_transactions as staging')
             ->leftJoin(
                 'dim_account as account',
-                'account.source_account_id',
-                '=',
-                'staging.source_account_id',
+                static function (JoinClause $join): void {
+                    $join
+                        ->on(
+                            'account.source_account_id',
+                            '=',
+                            'staging.source_account_id',
+                        )
+                        ->whereRaw(
+                            <<<'SQL'
+                            (
+                                (
+                                    staging.booked_at IS NOT NULL
+                                    AND account.valid_from <= staging.booked_at
+                                    AND (
+                                        account.valid_to IS NULL
+                                        OR staging.booked_at < account.valid_to
+                                    )
+                                )
+                                OR (
+                                    staging.booked_at IS NULL
+                                    AND account.is_current = true
+                                )
+                            )
+                            SQL,
+                        );
+                },
             )
             ->leftJoin(
                 'dim_branch as branch',
-                'branch.source_branch_id',
-                '=',
-                'staging.source_branch_id',
+                static function (JoinClause $join): void {
+                    $join
+                        ->on(
+                            'branch.source_branch_id',
+                            '=',
+                            'staging.source_branch_id',
+                        )
+                        ->whereRaw(
+                            <<<'SQL'
+                            (
+                                (
+                                    staging.booked_at IS NOT NULL
+                                    AND branch.valid_from <= staging.booked_at
+                                    AND (
+                                        branch.valid_to IS NULL
+                                        OR staging.booked_at < branch.valid_to
+                                    )
+                                )
+                                OR (
+                                    staging.booked_at IS NULL
+                                    AND branch.is_current = true
+                                )
+                            )
+                            SQL,
+                        );
+                },
             )
             ->leftJoin(
                 'dim_date as booking_date',

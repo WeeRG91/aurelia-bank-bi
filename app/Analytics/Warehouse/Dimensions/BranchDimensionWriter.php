@@ -9,5 +9,5 @@ interface BranchDimensionWriter
     /**
      * @param  list<array<string, int|string|null>>  $rows
      */
-    public function upsert(array $rows): void;
+    public function synchronize(array $rows): void;
 }

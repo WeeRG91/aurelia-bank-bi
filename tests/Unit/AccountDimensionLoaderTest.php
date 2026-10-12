@@ -6,6 +6,7 @@ use App\Analytics\Warehouse\Dimensions\AccountDimensionLoader;
 use App\Analytics\Warehouse\Dimensions\AccountDimensionRowFactory;
 use App\Analytics\Warehouse\Dimensions\AccountDimensionSource;
 use App\Analytics\Warehouse\Dimensions\AccountDimensionWriter;
+use App\Analytics\Warehouse\Dimensions\DimensionAttributeHasher;
 use DateTimeImmutable;
 use PHPUnit\Framework\TestCase;
 
@@ -55,7 +56,7 @@ final class AccountDimensionLoaderTest extends TestCase
                 return $callback();
             }
 
-            public function upsert(array $rows): void
+            public function synchronize(array $rows): void
             {
                 $this->batches[] = $rows;
             }
@@ -63,7 +64,9 @@ final class AccountDimensionLoaderTest extends TestCase
 
         $loadedRows = (new AccountDimensionLoader(
             $source,
-            new AccountDimensionRowFactory,
+            new AccountDimensionRowFactory(
+                new DimensionAttributeHasher,
+            ),
             $writer,
         ))->load(
             new DateTimeImmutable(
@@ -102,22 +105,24 @@ final class AccountDimensionLoaderTest extends TestCase
 
         $writer = new class implements AccountDimensionWriter
         {
-            public int $upsertCount = 0;
+            public int $synchronizeCount = 0;
 
             public function transaction(callable $callback): mixed
             {
                 return $callback();
             }
 
-            public function upsert(array $rows): void
+            public function synchronize(array $rows): void
             {
-                $this->upsertCount++;
+                $this->synchronizeCount++;
             }
         };
 
         $loadedRows = (new AccountDimensionLoader(
             $source,
-            new AccountDimensionRowFactory,
+            new AccountDimensionRowFactory(
+                new DimensionAttributeHasher,
+            ),
             $writer,
         ))->load(
             new DateTimeImmutable(
@@ -126,6 +131,6 @@ final class AccountDimensionLoaderTest extends TestCase
         );
 
         $this->assertSame(0, $loadedRows);
-        $this->assertSame(0, $writer->upsertCount);
+        $this->assertSame(0, $writer->synchronizeCount);
     }
 }

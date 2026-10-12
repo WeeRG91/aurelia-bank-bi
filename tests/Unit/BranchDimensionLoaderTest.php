@@ -6,6 +6,7 @@ use App\Analytics\Warehouse\Dimensions\BranchDimensionLoader;
 use App\Analytics\Warehouse\Dimensions\BranchDimensionRowFactory;
 use App\Analytics\Warehouse\Dimensions\BranchDimensionSource;
 use App\Analytics\Warehouse\Dimensions\BranchDimensionWriter;
+use App\Analytics\Warehouse\Dimensions\DimensionAttributeHasher;
 use DateTimeImmutable;
 use PHPUnit\Framework\TestCase;
 
@@ -51,7 +52,7 @@ final class BranchDimensionLoaderTest extends TestCase
                 return $callback();
             }
 
-            public function upsert(array $rows): void
+            public function synchronize(array $rows): void
             {
                 $this->batches[] = $rows;
             }
@@ -59,7 +60,9 @@ final class BranchDimensionLoaderTest extends TestCase
 
         $loadedRows = (new BranchDimensionLoader(
             $source,
-            new BranchDimensionRowFactory,
+            new BranchDimensionRowFactory(
+                new DimensionAttributeHasher,
+            ),
             $writer,
         ))->load(
             new DateTimeImmutable(
@@ -98,26 +101,28 @@ final class BranchDimensionLoaderTest extends TestCase
 
         $writer = new class implements BranchDimensionWriter
         {
-            public int $upsertCount = 0;
+            public int $synchronizeCount = 0;
 
             public function transaction(callable $callback): mixed
             {
                 return $callback();
             }
 
-            public function upsert(array $rows): void
+            public function synchronize(array $rows): void
             {
-                $this->upsertCount++;
+                $this->synchronizeCount++;
             }
         };
 
         $loadedRows = (new BranchDimensionLoader(
             $source,
-            new BranchDimensionRowFactory,
+            new BranchDimensionRowFactory(
+                new DimensionAttributeHasher,
+            ),
             $writer,
         ))->load(new DateTimeImmutable('2026-10-09T13:00:00Z'));
 
         $this->assertSame(0, $loadedRows);
-        $this->assertSame(0, $writer->upsertCount);
+        $this->assertSame(0, $writer->synchronizeCount);
     }
 }

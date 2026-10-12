@@ -48,7 +48,7 @@ final class LoadBranchDimensionCommandTest extends TestCase
                 return $callback();
             }
 
-            public function upsert(array $rows): void
+            public function synchronize(array $rows): void
             {
                 $this->rows = [
                     ...$this->rows,
