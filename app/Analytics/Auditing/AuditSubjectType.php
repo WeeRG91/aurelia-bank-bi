@@ -8,4 +8,6 @@ enum AuditSubjectType: string
     case SAVED_REPORT = 'saved_report';
     case REPORT_EXPORT = 'report_export';
     case SCHEDULED_REPORT = 'scheduled_report';
+    case DASHBOARD = 'dashboard';
+    case DASHBOARD_WIDGET = 'dashboard_widget';
 }

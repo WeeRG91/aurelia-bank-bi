@@ -49,6 +49,14 @@ final class SavedReport extends Model
     }
 
     /**
+     * @return HasMany<DashboardWidget, $this>
+     */
+    public function dashboardWidgets(): HasMany
+    {
+        return $this->hasMany(DashboardWidget::class);
+    }
+
+    /**
      * @return array<string, string>
      */
     protected function casts(): array

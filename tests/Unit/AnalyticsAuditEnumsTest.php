@@ -34,6 +34,12 @@ final class AnalyticsAuditEnumsTest extends TestCase
                 'schedule_dispatched',
                 'schedule_auto_paused',
                 'dashboard_viewed',
+                'dashboard_created',
+                'dashboard_updated',
+                'dashboard_deleted',
+                'dashboard_widget_created',
+                'dashboard_widget_updated',
+                'dashboard_widget_deleted',
             ],
             array_column(AuditAction::cases(), 'value'),
         );
@@ -72,6 +78,8 @@ final class AnalyticsAuditEnumsTest extends TestCase
                 'saved_report',
                 'report_export',
                 'scheduled_report',
+                'dashboard',
+                'dashboard_widget',
             ],
             array_column(AuditSubjectType::cases(), 'value'),
         );

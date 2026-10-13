@@ -69,6 +69,17 @@ class Employee extends Model
     }
 
     /**
+     * @return HasMany<Dashboard, $this>
+     */
+    public function dashboards(): HasMany
+    {
+        return $this->hasMany(
+            Dashboard::class,
+            'owner_employee_id',
+        );
+    }
+
+    /**
      * @return array<string, string>
      */
     public function casts(): array

@@ -23,6 +23,7 @@ final readonly class AuditContext
         'status_from',
         'status_to',
         'widget_count',
+        'widget_type',
     ];
 
     /**

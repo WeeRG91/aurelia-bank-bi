@@ -16,6 +16,7 @@ final class AuditContextTest extends TestCase
             'format' => 'csv',
             'dimension_count' => 3,
             'widget_count' => 3,
+            'widget_type' => 'chart',
             'cache_hit' => true,
         ]);
 
@@ -27,6 +28,7 @@ final class AuditContextTest extends TestCase
                 'period' => 'last_30_days',
                 'row_count' => 25,
                 'widget_count' => 3,
+                'widget_type' => 'chart',
             ],
             $context->toArray(),
         );

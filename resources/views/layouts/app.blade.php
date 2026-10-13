@@ -57,6 +57,15 @@
                     </a>
                 @endcan
 
+                @can('viewAny', \App\Models\Dashboard::class)
+                    <a
+                        href="{{ route('analytics.dashboards.page') }}"
+                        class="text-sm font-medium text-slate-700 hover:text-amber-700"
+                    >
+                        My Dashboards
+                    </a>
+                @endcan
+
                 @can('viewAny', \App\Models\ReportExport::class)
                     <a
                         href="{{ route('analytics.report-exports.index') }}"

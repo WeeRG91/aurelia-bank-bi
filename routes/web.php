@@ -1,7 +1,17 @@
 <?php
 
 use App\Http\Controllers\Analytics\AnalyticsAuditEventController;
+use App\Http\Controllers\Analytics\DashboardController as AnalyticsDashboardController;
+use App\Http\Controllers\Analytics\DashboardDestroyController;
+use App\Http\Controllers\Analytics\DashboardResultsController;
+use App\Http\Controllers\Analytics\DashboardShowController;
+use App\Http\Controllers\Analytics\DashboardStoreController;
+use App\Http\Controllers\Analytics\DashboardUpdateController;
+use App\Http\Controllers\Analytics\DashboardWidgetDestroyController;
+use App\Http\Controllers\Analytics\DashboardWidgetStoreController;
+use App\Http\Controllers\Analytics\DashboardWidgetUpdateController;
 use App\Http\Controllers\Analytics\DatasetCatalogController;
+use App\Http\Controllers\Analytics\EmployeeDashboardPageController;
 use App\Http\Controllers\Analytics\QueuedReportExportController;
 use App\Http\Controllers\Analytics\ReportBuilderController;
 use App\Http\Controllers\Analytics\ReportExportController;
@@ -115,5 +125,64 @@ Route::middleware(['auth', 'active.employee'])->group(function (): void {
                 '/audit-events',
                 [AnalyticsAuditEventController::class, 'index'],
             )->name('audit-events.index');
+
+            Route::get(
+                '/dashboards',
+                AnalyticsDashboardController::class,
+            )->name('dashboards.index');
+            Route::get(
+                '/dashboards/{dashboard}',
+                DashboardShowController::class,
+            )
+                ->whereNumber('dashboard')
+                ->name('dashboards.show');
+            Route::get(
+                '/dashboards/{dashboard}/results',
+                DashboardResultsController::class,
+            )
+                ->whereNumber('dashboard')
+                ->name('dashboards.results');
+            Route::post(
+                '/dashboards',
+                DashboardStoreController::class,
+            )->name('dashboards.store');
+            Route::put(
+                '/dashboards/{dashboard}',
+                DashboardUpdateController::class,
+            )
+                ->whereNumber('dashboard')
+                ->name('dashboards.update');
+            Route::delete(
+                '/dashboards/{dashboard}',
+                DashboardDestroyController::class,
+            )
+                ->whereNumber('dashboard')
+                ->name('dashboards.destroy');
+
+            Route::post(
+                '/dashboards/{dashboard}/widgets',
+                DashboardWidgetStoreController::class,
+            )
+                ->whereNumber('dashboard')
+                ->name('dashboards.widgets.store');
+            Route::put(
+                '/dashboards/{dashboard}/widgets/{dashboardWidget}',
+                DashboardWidgetUpdateController::class,
+            )
+                ->whereNumber('dashboard')
+                ->whereNumber('dashboardWidget')
+                ->name('dashboards.widgets.update');
+            Route::delete(
+                '/dashboards/{dashboard}/widgets/{dashboardWidget}',
+                DashboardWidgetDestroyController::class,
+            )
+                ->whereNumber('dashboard')
+                ->whereNumber('dashboardWidget')
+                ->name('dashboards.widgets.destroy');
+
+            Route::get(
+                '/my-dashboards',
+                EmployeeDashboardPageController::class,
+            )->name('dashboards.page');
         });
 });

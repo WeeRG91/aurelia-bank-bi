@@ -2,6 +2,7 @@ import './bootstrap';
 
 import type { ReportBuilderBootstrap } from './report-builder/types';
 import type { DashboardBootstrap } from '@/dashboard/types.ts';
+import type {EmployeeDashboardBootstrap} from "@/employee-dashboard/types.ts";
 
 async function mountReportBuilder(): Promise<void> {
     const root = document.querySelector<HTMLElement>('[data-report-builder]');
@@ -45,5 +46,38 @@ async function mountAnalyticsDashboard(): Promise<void> {
     }).mount(root);
 }
 
+async function mountEmployeeDashboard(): Promise<void> {
+    const root = document.querySelector<HTMLElement>(
+        '[data-employee-dashboard]',
+    );
+
+    const bootstrapElement = document.getElementById(
+        'employee-dashboard-bootstrap',
+    );
+
+    if (root === null || bootstrapElement === null) {
+        return;
+    }
+
+    const bootstrap = JSON.parse(
+        bootstrapElement.textContent ?? '',
+    ) as EmployeeDashboardBootstrap;
+
+    const [
+        { createApp },
+        { default: EmployeeDashboardApp },
+    ] = await Promise.all([
+        import('vue'),
+        import(
+            './employee-dashboard/EmployeeDashboardApp.vue'
+            ),
+    ]);
+
+    createApp(EmployeeDashboardApp, {
+        bootstrap,
+    }).mount(root);
+}
+
 void mountReportBuilder();
 void mountAnalyticsDashboard();
+void mountEmployeeDashboard();
